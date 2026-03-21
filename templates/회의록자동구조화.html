@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회의록 자동 구조화 - 공정거래위원회</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a3a6b;
+      --primary-light: #2a5298;
+      --bg: #eef2f7;
+      --white: #ffffff;
+      --border: #d0d9e8;
+      --text: #2c3e50;
+      --text-muted: #666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--primary);
+      color: var(--white);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    header .logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    header .header-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header .header-text p {
+      font-size: 13px;
+      opacity: 0.75;
+      margin-top: 2px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 20px 60px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background: var(--primary-light);
+      border-radius: 2px;
+    }
+
+    /* API Key Section */
+    .api-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .api-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-row input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(42,82,152,0.08);
+    }
+
+    .btn-save-key {
+      padding: 9px 18px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-save-key:hover {
+      background: var(--primary-light);
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mode-badge.active {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .mode-badge.inactive {
+      background: #fff8e1;
+      color: #f57f17;
+      border: 1px solid #ffe082;
+    }
+
+    /* Form Fields */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    label span.required {
+      color: #e53935;
+      margin-left: 2px;
+    }
+
+    input[type="text"],
+    textarea {
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--white);
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(42,82,152,0.08);
+    }
+
+    input[type="text"].error,
+    textarea.error {
+      border-color: #e53935;
+      box-shadow: 0 0 0 3px rgba(229,57,53,0.08);
+    }
+
+    textarea {
+      height: 210px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    textarea::placeholder {
+      color: #aab;
+      font-size: 13px;
+    }
+
+    /* Action Button */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 13px 24px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-light);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-primary.loading .spinner {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error Message */
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 15px;
+      background: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 8px;
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+
+    .error-msg.visible {
+      display: flex;
+    }
+
+    /* Output Section */
+    .output-section {
+      display: none;
+      margin-top: 24px;
+    }
+
+    .output-section.visible {
+      display: block;
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .output-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-action:hover {
+      background: #dce5f0;
+      border-color: var(--primary-light);
+    }
+
+    .btn-action.copied {
+      background: #e8f5e9;
+      border-color: #a5d6a7;
+      color: #2e7d32;
+    }
+
+    .btn-action.pdf {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+
+    .btn-action.pdf:hover {
+      background: var(--primary-light);
+      border-color: var(--primary-light);
+    }
+
+    /* ===================================================
+       A4 DOCUMENT PREVIEW
+       =================================================== */
+    .document-wrapper {
+      display: flex;
+      justify-content: center;
+      background: #c8d0dc;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    #documentPreview {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 60px 50px 40px 50px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', serif;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #000000;
+      position: relative;
+    }
+
+    /* Document Header: Agency name */
+    .doc-agency {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      letter-spacing: 4px;
+      margin-bottom: 6pt;
+      color: #000;
+    }
+
+    /* Document Title */
+    .doc-title {
+      text-align: center;
+      font-size: 20pt;
+      font-weight: bold;
+      letter-spacing: 10px;
+      margin-bottom: 24pt;
+      color: #000;
+    }
+
+    /* Divider line */
+    .doc-divider {
+      border: none;
+      border-top: 2px solid #000;
+      margin: 8pt 0;
+    }
+
+    .doc-divider-thin {
+      border: none;
+      border-top: 1px solid #000;
+      margin: 6pt 0;
+    }
+
+    /* Section headers: "1. 회의 개요" */
+    .doc-section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-top: 14pt;
+      margin-bottom: 6pt;
+      color: #000;
+    }
+
+    /* Sub-items: "가. 회 의 명:" */
+    .doc-item {
+      display: flex;
+      margin-bottom: 3pt;
+      padding-left: 4pt;
+    }
+
+    .doc-item-label {
+      min-width: 70pt;
+      font-weight: bold;
+      white-space: nowrap;
+      color: #000;
+    }
+
+    .doc-item-value {
+      flex: 1;
+      word-break: break-word;
+      color: #000;
+    }
+
+    /* Agenda item title: "가. {안건 제목}" */
+    .doc-agenda-title {
+      font-weight: bold;
+      margin-top: 8pt;
+      margin-bottom: 3pt;
+      padding-left: 4pt;
+      color: #000;
+    }
+
+    /* Agenda content bullet */
+    .doc-agenda-content {
+      padding-left: 16pt;
+      margin-bottom: 4pt;
+      color: #000;
+    }
+
+    /* Decision / follow-up items */
+    .doc-list-item {
+      padding-left: 4pt;
+      margin-bottom: 3pt;
+      color: #000;
+    }
+
+    /* Placeholder text for AI-only sections */
+    .doc-placeholder {
+      padding-left: 4pt;
+      color: #888;
+      font-style: italic;
+      font-size: 9pt;
+    }
+
+    /* Document footer */
+    .doc-footer {
+      margin-top: 30pt;
+      padding-top: 8pt;
+    }
+
+    .doc-end {
+      text-align: right;
+      font-weight: bold;
+      margin-bottom: 20pt;
+      font-size: 10pt;
+      color: #000;
+    }
+
+    .doc-signature-row {
+      display: flex;
+      gap: 20pt;
+      margin-top: 6pt;
+    }
+
+    .doc-signature-item {
+      font-size: 10pt;
+      color: #000;
+    }
+
+    .doc-signature-item .sig-label {
+      font-weight: bold;
+      margin-right: 6pt;
+    }
+
+    .doc-signature-item .sig-line {
+      display: inline-block;
+      min-width: 80pt;
+      border-bottom: 1px solid #000;
+    }
+
+    /* Responsive: shrink A4 on small screens */
+    @media (max-width: 750px) {
+      #documentPreview {
+        max-width: 100%;
+        padding: 30px 20px 20px 24px;
+      }
+
+      .doc-agency {
+        font-size: 14pt;
+      }
+
+      .doc-title {
+        font-size: 16pt;
+      }
+
+      .document-wrapper {
+        padding: 10px;
+      }
+    }
+
+    /* Responsive: form */
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full-width {
+        grid-column: 1;
+      }
+
+      header {
+        padding: 14px 18px;
+      }
+
+      .card {
+        padding: 18px 16px;
+      }
+
+      .container {
+        margin: 16px auto;
+      }
+    }
+
+    /* Print / PDF overrides */
+    @media print {
+      body {
+        background: #fff;
+      }
+      header, .container > .card, .btn-primary, .error-msg, .output-header {
+        display: none !important;
+      }
+      .output-section {
+        display: block !important;
+      }
+      .document-wrapper {
+        background: none;
+        padding: 0;
+      }
+      #documentPreview {
+        box-shadow: none;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">&#127963;</div>
+  <div class="header-text">
+    <h1>회의록 자동 구조화</h1>
+    <p>공정거래위원회 | 자유 메모를 정부 표준 회의록으로</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- API Key Card -->
+  <div class="card">
+    <div class="card-title">API 설정</div>
+    <div class="api-row">
+      <input
+        type="password"
+        id="apiKeyInput"
+        placeholder="Anthropic API 키를 입력하세요 (sk-ant-...)"
+        autocomplete="off"
+      />
+      <button class="btn-save-key" id="btnSaveKey" onclick="saveApiKey()">저장</button>
+      <span class="mode-badge inactive" id="modeBadge">&#128203; API 키를 입력해주세요</span>
+    </div>
+  </div>
+
+  <!-- Input Form Card -->
+  <div class="card">
+    <div class="card-title">회의 정보 입력</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="meetingName">회의명<span class="required">*</span></label>
+        <input type="text" id="meetingName" placeholder="예: 2026년 1분기 정책 검토 회의" />
+      </div>
+      <div class="form-group">
+        <label for="meetingDate">일시</label>
+        <input type="text" id="meetingDate" placeholder="예: 2026. 03. 21. 14:00" />
+      </div>
+      <div class="form-group">
+        <label for="meetingPlace">장소</label>
+        <input type="text" id="meetingPlace" placeholder="예: 공정거래위원회 대회의실" />
+      </div>
+      <div class="form-group">
+        <label for="attendees">참석자</label>
+        <input type="text" id="attendees" placeholder="예: 홍길동, 이순신, 김철수" />
+      </div>
+      <div class="form-group full-width">
+        <label for="meetingContent">회의 내용 (자유 입력)<span class="required">*</span></label>
+        <textarea
+          id="meetingContent"
+          placeholder="자유롭게 메모 형식으로 입력하세요.&#10;&#10;예시:&#10;- 시장 지배적 지위 남용 사례 검토&#10;- A사 과징금 부과 여부 논의 → 부과하기로 결정, 담당: 김부장&#10;- 다음 달 공청회 준비 필요, 홍과장 담당"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Button -->
+  <button class="btn-primary" id="structureBtn" onclick="structureMeeting()">
+    <div class="spinner" id="btnSpinner"></div>
+    <span id="btnText">&#10024; 회의록 구조화하기</span>
+  </button>
+
+  <!-- Error Message -->
+  <div class="error-msg" id="errorMsg">
+    <span>&#9888;&#65039;</span>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- Output Section -->
+  <div class="output-section" id="outputSection">
+    <div class="card">
+      <div class="output-header">
+        <div class="card-title" style="margin-bottom: 0;">정부 표준 회의록 미리보기</div>
+        <div class="output-actions">
+          <button class="btn-action pdf" id="pdfBtn" onclick="downloadPDF()">&#128196; PDF 다운로드</button>
+          <button class="btn-action" id="copyBtn" onclick="copyOutput()">&#128203; 복사</button>
+        </div>
+      </div>
+
+      <!-- A4 Document Preview -->
+      <div class="document-wrapper">
+        <div id="documentPreview">
+
+          <!-- Agency Name -->
+          <div class="doc-agency" id="docAgency">공정거래위원회</div>
+
+          <!-- Document Title -->
+          <div class="doc-title">회&nbsp;&nbsp;의&nbsp;&nbsp;록</div>
+
+          <hr class="doc-divider">
+
+          <!-- Section 1: Overview -->
+          <div class="doc-section-title">1. 회의 개요</div>
+          <div class="doc-item">
+            <span class="doc-item-label">가. 회&nbsp;의&nbsp;명:</span>
+            <span class="doc-item-value" id="docMeetingName"></span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-item-label">나. 일&nbsp;&nbsp;&nbsp;&nbsp;시:</span>
+            <span class="doc-item-value" id="docDate"></span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-item-label">다. 장&nbsp;&nbsp;&nbsp;&nbsp;소:</span>
+            <span class="doc-item-value" id="docPlace"></span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-item-label">라. 참&nbsp;석&nbsp;자:</span>
+            <span class="doc-item-value" id="docAttendees"></span>
+          </div>
+
+          <hr class="doc-divider-thin">
+
+          <!-- Section 2: Discussion -->
+          <div class="doc-section-title">2. 안건별 논의 내용</div>
+          <div id="docDiscussion"></div>
+
+          <hr class="doc-divider-thin">
+
+          <!-- Section 3: Decisions -->
+          <div class="doc-section-title">3. 결정 사항</div>
+          <div id="docDecisions"></div>
+
+          <hr class="doc-divider-thin">
+
+          <!-- Section 4: Follow-up -->
+          <div class="doc-section-title">4. 후속 조치 및 담당자</div>
+          <div id="docFollowUp"></div>
+
+          <!-- Footer -->
+          <div class="doc-footer">
+            <div class="doc-end">끝.</div>
+            <hr class="doc-divider-thin">
+            <div class="doc-signature-row">
+              <div class="doc-signature-item">
+                <span class="sig-label">작성자:</span>
+                <span class="sig-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              </div>
+              <div class="doc-signature-item">
+                <span class="sig-label">작성일:</span>
+                <span id="docWriteDate"></span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- #documentPreview -->
+      </div><!-- .document-wrapper -->
+
+    </div><!-- .card -->
+  </div><!-- .output-section -->
+
+</div><!-- .container -->
+
+<script>
+  // =============================================
+  // Init
+  // =============================================
+  window.addEventListener('DOMContentLoaded', () => {
+    const DEFAULT_KEY = '';
+    const savedKey = localStorage.getItem('ftc_api_key') || DEFAULT_KEY;
+    document.getElementById('apiKeyInput').value = savedKey;
+    updateBadge(true);
+  });
+
+  // =============================================
+  // API Key Management
+  // =============================================
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) {
+      localStorage.setItem('ftc_api_key', key);
+      updateBadge(true);
+      showTemporaryBtnFeedback('btnSaveKey', '저장됨 &#10003;', 1500);
+    } else {
+      localStorage.removeItem('ftc_api_key');
+      updateBadge(false);
+    }
+  }
+
+  function updateBadge(hasKey) {
+    const badge = document.getElementById('modeBadge');
+    if (hasKey) {
+      badge.innerHTML = '&#129302; Claude AI 모드';
+      badge.className = 'mode-badge active';
+    } else {
+      badge.innerHTML = '&#128203; API 키를 입력해주세요';
+      badge.className = 'mode-badge inactive';
+    }
+  }
+
+  function showTemporaryBtnFeedback(btnId, html, duration) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.innerHTML = html;
+    setTimeout(() => { btn.innerHTML = original; }, duration);
+  }
+
+  // =============================================
+  // Claude API
+  // =============================================
+  async function callClaude(systemPrompt, userContent, apiKey) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const errMsg = data.error?.message || 'HTTP ' + response.status;
+      throw new Error(errMsg);
+    }
+    return data.content[0].text;
+  }
+
+  // =============================================
+  // Loading State
+  // =============================================
+  function setLoading(isLoading) {
+    const btn = document.getElementById('structureBtn');
+    const spinner = document.getElementById('btnSpinner');
+    const btnText = document.getElementById('btnText');
+    btn.disabled = isLoading;
+    if (isLoading) {
+      btn.classList.add('loading');
+      spinner.style.display = 'block';
+      btnText.textContent = '구조화 중...';
+    } else {
+      btn.classList.remove('loading');
+      spinner.style.display = 'none';
+      btnText.innerHTML = '&#10024; 회의록 구조화하기';
+    }
+  }
+
+  // =============================================
+  // Error handling
+  // =============================================
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    document.getElementById('errorText').textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').classList.remove('visible');
+  }
+
+  // =============================================
+  // Korean number helpers: 가, 나, 다, ...
+  // =============================================
+  const KO_ALPHA = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+  function koAlpha(i) {
+    return KO_ALPHA[i] || String(i + 1);
+  }
+
+  // =============================================
+  // Render Document
+  // =============================================
+  function renderDocument(meetingName, date, place, attendees, structured) {
+    // Overview section
+    document.getElementById('docMeetingName').textContent = meetingName || '(미입력)';
+    document.getElementById('docDate').textContent = date || '(미입력)';
+    document.getElementById('docPlace').textContent = place || '(미입력)';
+    document.getElementById('docAttendees').textContent = attendees || '(미입력)';
+
+    // Write date
+    const now = new Date();
+    const yyyymmdd =
+      now.getFullYear() + '. ' +
+      String(now.getMonth() + 1).padStart(2, '0') + '. ' +
+      String(now.getDate()).padStart(2, '0') + '.';
+    document.getElementById('docWriteDate').textContent = yyyymmdd;
+
+    const discEl = document.getElementById('docDiscussion');
+    const decEl = document.getElementById('docDecisions');
+    const fuEl = document.getElementById('docFollowUp');
+
+    discEl.innerHTML = '';
+    decEl.innerHTML = '';
+    fuEl.innerHTML = '';
+
+    if (!structured) {
+      // ---- 기본 모드: show raw content under section 2 ----
+      // We already have raw content available via closure; pass it explicitly
+      // (caller passes structured=null and raw via third arg)
+      return; // handled by renderBasicMode
+    }
+
+    // ---- AI 모드ㅡ논의 ----
+    const discussions = structured['논의'] || [];
+    if (discussions.length === 0) {
+      const p = document.createElement('div');
+      p.className = 'doc-placeholder';
+      p.textContent = '(내용 없음)';
+      discEl.appendChild(p);
+    } else {
+      discussions.forEach((item, i) => {
+        const title = document.createElement('div');
+        title.className = 'doc-agenda-title';
+        title.textContent = koAlpha(i) + '. ' + (item['안건'] || '');
+        discEl.appendChild(title);
+
+        const content = document.createElement('div');
+        content.className = 'doc-agenda-content';
+        content.textContent = '- ' + (item['내용'] || '');
+        discEl.appendChild(content);
+      });
+    }
+
+    // ---- AI 모드ㅡ결정 ----
+    const decisions = structured['결정'] || [];
+    if (decisions.length === 0) {
+      const p = document.createElement('div');
+      p.className = 'doc-placeholder';
+      p.textContent = '(내용 없음)';
+      decEl.appendChild(p);
+    } else {
+      decisions.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'doc-list-item';
+        row.textContent = koAlpha(i) + '. ' + item;
+        decEl.appendChild(row);
+      });
+    }
+
+    // ---- AI 모드ㅡ후속조치 ----
+    const followUps = structured['후속조치'] || [];
+    if (followUps.length === 0) {
+      const p = document.createElement('div');
+      p.className = 'doc-placeholder';
+      p.textContent = '(내용 없음)';
+      fuEl.appendChild(p);
+    } else {
+      followUps.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'doc-list-item';
+        const actionText = item['조치'] || String(item);
+        const person = item['담당'] ? ' (담당: ' + item['담당'] + ')' : '';
+        row.textContent = koAlpha(i) + '. ' + actionText + person;
+        fuEl.appendChild(row);
+      });
+    }
+  }
+
+  function renderBasicMode(meetingName, date, place, attendees, rawContent) {
+    // Fill overview
+    document.getElementById('docMeetingName').textContent = meetingName || '(미입력)';
+    document.getElementById('docDate').textContent = date || '(미입력)';
+    document.getElementById('docPlace').textContent = place || '(미입력)';
+    document.getElementById('docAttendees').textContent = attendees || '(미입력)';
+
+    // Write date
+    const now = new Date();
+    const yyyymmdd =
+      now.getFullYear() + '. ' +
+      String(now.getMonth() + 1).padStart(2, '0') + '. ' +
+      String(now.getDate()).padStart(2, '0') + '.';
+    document.getElementById('docWriteDate').textContent = yyyymmdd;
+
+    // Section 2: raw content as-is
+    const discEl = document.getElementById('docDiscussion');
+    discEl.innerHTML = '';
+    const lines = rawContent.split('\n');
+    lines.forEach(line => {
+      const div = document.createElement('div');
+      div.className = 'doc-agenda-content';
+      div.style.paddingLeft = '4pt';
+      div.textContent = line;
+      discEl.appendChild(div);
+    });
+
+    // Section 3 & 4: placeholder
+    const placeholder = '&#8203;&#10;&#8203;';  // zero-width + line break trick
+    const placeholderText = '※ AI 모드에서 자동 구조화됩니다';
+
+    const decEl = document.getElementById('docDecisions');
+    decEl.innerHTML = '';
+    const decP = document.createElement('div');
+    decP.className = 'doc-placeholder';
+    decP.textContent = placeholderText;
+    decEl.appendChild(decP);
+
+    const fuEl = document.getElementById('docFollowUp');
+    fuEl.innerHTML = '';
+    const fuP = document.createElement('div');
+    fuP.className = 'doc-placeholder';
+    fuP.textContent = placeholderText;
+    fuEl.appendChild(fuP);
+  }
+
+  // =============================================
+  // Main: Structure Meeting
+  // =============================================
+  async function structureMeeting() {
+    hideError();
+
+    // Validate required fields
+    const meetingName = document.getElementById('meetingName').value.trim();
+    const meetingContent = document.getElementById('meetingContent').value.trim();
+    let hasError = false;
+
+    if (!meetingName) {
+      document.getElementById('meetingName').classList.add('error');
+      hasError = true;
+    } else {
+      document.getElementById('meetingName').classList.remove('error');
+    }
+
+    if (!meetingContent) {
+      document.getElementById('meetingContent').classList.add('error');
+      hasError = true;
+    } else {
+      document.getElementById('meetingContent').classList.remove('error');
+    }
+
+    if (hasError) {
+      showError('필수 항목(회의명, 회의 내용)을 입력해주세요.');
+      return;
+    }
+
+    const date = document.getElementById('meetingDate').value.trim();
+    const place = document.getElementById('meetingPlace').value.trim();
+    const attendees = document.getElementById('attendees').value.trim();
+    const apiKey = localStorage.getItem('ftc_api_key') || document.getElementById('apiKeyInput').value.trim();
+
+    // Hide previous output
+    document.getElementById('outputSection').classList.remove('visible');
+
+    if (!apiKey) {
+      // ---- 기본 모드 ----
+      renderBasicMode(meetingName, date, place, attendees, meetingContent);
+      document.getElementById('outputSection').classList.add('visible');
+      document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    // ---- AI 모드 ----
+    const systemPrompt = `당신은 대한민국 정부 공문서 작성 전문가입니다. 회의 내용을 분석하여 정부 표준 회의록 형식에 맞는 JSON을 반환하세요.
+
+반환 형식 (JSON만 반환, 다른 텍스트 없이):
+{
+  "논의": [{"안건": "안건 제목", "내용": "논의 내용 요약"}, ...],
+  "결정": ["결정사항1", "결정사항2", ...],
+  "후속조치": [{"조치": "조치 내용", "담당": "담당자명"}, ...]
+}
+
+규칙:
+- 격식체 사용 (합니다, 입니다 체)
+- 안건별로 논의 내용을 구분
+- 결정 사항은 명확한 결정이 있는 경우만 포함
+- 후속 조치는 담당자가 언급된 경우 포함, 없으면 담당 필드를 빈 문자열로
+- 내용이 없으면 해당 배열을 빈 배열로 반환`;
+
+    const userContent = [
+      '회의명: ' + meetingName,
+      date ? '일시: ' + date : '',
+      place ? '장소: ' + place : '',
+      attendees ? '참석자: ' + attendees : '',
+      '',
+      '회의 내용:',
+      meetingContent
+    ].filter(l => l !== '').join('\n');
+
+    setLoading(true);
+
+    try {
+      const raw = await callClaude(systemPrompt, userContent, apiKey);
+
+      // Extract JSON from response
+      let structured;
+      try {
+        // Try direct parse first
+        structured = JSON.parse(raw.trim());
+      } catch (e) {
+        // Extract JSON block if wrapped in markdown
+        const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (match) {
+          structured = JSON.parse(match[1].trim());
+        } else {
+          // Try finding first { to last }
+          const start = raw.indexOf('{');
+          const end = raw.lastIndexOf('}');
+          if (start !== -1 && end !== -1) {
+            structured = JSON.parse(raw.substring(start, end + 1));
+          } else {
+            throw new Error('JSON 파싱 실패: ' + e.message);
+          }
+        }
+      }
+
+      renderDocument(meetingName, date, place, attendees, structured);
+      document.getElementById('outputSection').classList.add('visible');
+      document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // Reset copy button
+      const copyBtn = document.getElementById('copyBtn');
+      copyBtn.innerHTML = '&#128203; 복사';
+      copyBtn.classList.remove('copied');
+
+    } catch (err) {
+      showError('API 오류: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // =============================================
+  // PDF Download via html2pdf.js
+  // =============================================
+  function downloadPDF() {
+    const element = document.getElementById('documentPreview');
+    const meetingName = document.getElementById('meetingName').value.trim() || '회의록';
+
+    const opt = {
+      margin: [20, 15, 15, 15],
+      filename: meetingName + '_회의록.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        scrollY: 0
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
+
+    const btn = document.getElementById('pdfBtn');
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '&#8987; 생성 중...';
+    btn.disabled = true;
+
+    // 화면 padding 제거 → html2pdf margin만으로 여백 처리
+    element.style.padding = '0';
+    element.style.maxWidth = 'none';
+    element.style.boxShadow = 'none';
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.padding = '';
+      element.style.maxWidth = '';
+      element.style.boxShadow = '';
+      btn.innerHTML = origHTML;
+      btn.disabled = false;
+    }).catch(err => {
+      element.style.padding = '';
+      element.style.maxWidth = '';
+      element.style.boxShadow = '';
+      btn.innerHTML = origHTML;
+      btn.disabled = false;
+      showError('PDF 생성 오류: ' + err.message);
+    });
+  }
+
+  // =============================================
+  // Copy plain-text version
+  // =============================================
+  function copyOutput() {
+    const preview = document.getElementById('documentPreview');
+    if (!preview) return;
+    const text = preview.innerText || preview.textContent;
+    if (!text.trim()) return;
+
+    const doCopy = () => {
+      const btn = document.getElementById('copyBtn');
+      btn.innerHTML = '&#9989; 복사됨';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.innerHTML = '&#128203; 복사';
+        btn.classList.remove('copied');
+      }, 2000);
+    };
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(doCopy).catch(() => fallbackCopy(text, doCopy));
+    } else {
+      fallbackCopy(text, doCopy);
+    }
+  }
+
+  function fallbackCopy(text, callback) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (callback) callback();
+  }
+
+  // =============================================
+  // Clear error on input
+  // =============================================
+  document.getElementById('meetingName').addEventListener('input', () => {
+    document.getElementById('meetingName').classList.remove('error');
+    hideError();
+  });
+
+  document.getElementById('meetingContent').addEventListener('input', () => {
+    document.getElementById('meetingContent').classList.remove('error');
+    hideError();
+  });
+
+  document.getElementById('apiKeyInput').addEventListener('input', () => {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    updateBadge(!!key);
+  });
+</script>
+
+</body>
+</html>

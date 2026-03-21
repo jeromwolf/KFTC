@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 2 — 디자인 업그레이드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #1a3a6b;
+  --primary-light: #2a5298;
+  --bg: #eef2f7;
+  --white: #ffffff;
+  --border: #d0d9e8;
+  --text: #2c3e50;
+  --text-muted: #666;
+}
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+header {
+  background: var(--primary);
+  color: white;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+header .logo { font-size: 28px; }
+header h1 { font-size: 20px; font-weight: 600; }
+header .step-badge {
+  background: rgba(255,255,255,0.2);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-left: auto;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+
+/* 학습 박스 */
+.learn-box {
+  background: #fffbea;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.learn-box .learn-title { font-weight: 700; color: #b45309; margin-bottom: 6px; font-size: 15px; }
+.learn-box code {
+  background: #fef3c7; padding: 2px 6px; border-radius: 4px;
+  font-family: 'Consolas', monospace; font-size: 13px; color: #92400e;
+}
+
+/* PRD 변경 포인트 */
+.prd-box {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.prd-box .prd-title { font-weight: 700; color: #1d4ed8; margin-bottom: 6px; font-size: 15px; }
+.prd-before {
+  background: #fee2e2; padding: 8px 14px; border-radius: 6px;
+  margin: 6px 0; font-size: 13px; border-left: 3px solid #ef4444;
+}
+.prd-after {
+  background: #dcfce7; padding: 8px 14px; border-radius: 6px;
+  margin: 6px 0; font-size: 13px; border-left: 3px solid #22c55e;
+}
+.prd-label { font-weight: 600; font-size: 12px; color: #666; margin-bottom: 2px; }
+
+/* 비교 박스 */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.compare-card {
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 13px;
+}
+.compare-card.before {
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+}
+.compare-card.after {
+  background: var(--white);
+  border: 2px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(26,58,107,0.1);
+}
+.compare-card h4 { margin-bottom: 8px; font-size: 14px; }
+.compare-card .mini-header-before {
+  background: #f3f4f6; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; color: #666;
+}
+.compare-card .mini-header-after {
+  background: var(--primary); color: white; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;
+}
+.compare-card .mini-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+.compare-card .mini-table th { background: #e5e7eb; padding: 4px 6px; text-align: left; }
+.compare-card.after .mini-table th { background: var(--primary); color: white; }
+.compare-card .mini-table td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+
+/* 업로드 */
+.upload-section {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.upload-area:hover { border-color: var(--primary-light); background: #f8fafd; }
+.upload-area .icon { font-size: 40px; margin-bottom: 8px; }
+.upload-area p { color: var(--text-muted); font-size: 14px; }
+.upload-area .filename { color: var(--primary); font-weight: 600; margin-top: 8px; }
+#fileInput { display: none; }
+
+/* 통계 카드 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  text-align: center;
+}
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.stat-card.urgent .stat-value { color: #c0392b; }
+.stat-card.normal .stat-value { color: #d68910; }
+.stat-card.low .stat-value { color: #1e8449; }
+
+/* 테이블 */
+.table-section {
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--primary); color: white; }
+th { padding: 12px 10px; text-align: left; font-weight: 600; white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid #f0f3f8; vertical-align: top; }
+tr:hover { background: #f8fafd; }
+td:nth-child(3) { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.learn-toggle {
+  background: none; border: none; color: #b45309; cursor: pointer;
+  font-size: 13px; font-weight: 600; margin-top: 6px; padding: 0;
+}
+.code-block {
+  background: #1e293b; color: #e2e8f0; padding: 12px 16px; border-radius: 6px;
+  margin-top: 8px; font-family: 'Consolas', monospace; font-size: 12px;
+  line-height: 1.6; overflow-x: auto; white-space: pre;
+}
+
+@media (max-width: 900px) {
+  .stats-grid, .compare-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <h1>공정거래위원회 민원 데이터 뷰어</h1>
+  <span class="step-badge">STEP 2 — 디자인 변경</span>
+</header>
+
+<div class="container">
+
+  <!-- 학습 포인트: 이 단계의 핵심 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — Step 2의 핵심: "디자인 바꿔줘" 한 마디의 힘</div>
+    Step 1의 코드는 그대로 두고, PRD에 <strong>한 줄만 추가</strong>했습니다.<br>
+    AI가 자동으로 CSS 변수, 색상 테마, 카드 레이아웃을 생성합니다.<br>
+    <strong>기능은 동일 → 디자인만 변경.</strong> 이것이 바이브코딩의 점진적 접근법입니다.
+  </div>
+
+  <!-- PRD 변경 포인트 -->
+  <div class="prd-box">
+    <div class="prd-title">📝 PRD에 추가한 문장 (이것만 바꿨습니다)</div>
+    <div class="prd-label">Step 1의 PRD:</div>
+    <div class="prd-before">"엑셀을 업로드하면 테이블로 보여줘"</div>
+    <div class="prd-label">Step 2에서 추가한 두 줄:</div>
+    <div class="prd-after">"디자인을 <strong>공공기관 느낌의 파란색 테마</strong>로 바꿔줘. 헤더는 남색으로."</div>
+    <div class="prd-after">"상단에 <strong>통계 카드</strong>를 추가해서 전체 건수를 보여줘."</div>
+  </div>
+
+  <!-- Step1 vs Step2 비교 -->
+  <div class="compare-grid">
+    <div class="compare-card before">
+      <h4>❌ Step 1 (Before)</h4>
+      <div class="mini-header-before">📁 민원 데이터 뷰어</div>
+      <table class="mini-table">
+        <thead><tr><th>번호</th><th>제목</th><th>접수일</th></tr></thead>
+        <tbody><tr><td>1</td><td>개인정보 무단 수집...</td><td>2026-03-17</td></tr></tbody>
+      </table>
+      <p style="color:#999;font-size:11px;margin-top:6px">흰 배경, 기본 스타일, 밋밋한 느낌</p>
+    </div>
+    <div class="compare-card after">
+      <h4>✅ Step 2 (After)</h4>
+      <div class="mini-header-after">🏛️ 공정거래위원회 민원 데이터 뷰어</div>
+      <table class="mini-table">
+        <thead><tr><th>번호</th><th>제목</th><th>접수일</th></tr></thead>
+        <tbody><tr><td>1</td><td>개인정보 무단 수집...</td><td>2026-03-17</td></tr></tbody>
+      </table>
+      <p style="color:var(--primary);font-size:11px;margin-top:6px">파란 테마, 카드 UI, 전문적인 느낌</p>
+    </div>
+  </div>
+
+  <!-- 학습 포인트: CSS 변수 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — AI가 만든 CSS 변수란?</div>
+    <code>--primary: #1a3a6b</code> 하나를 바꾸면 헤더, 버튼, 테이블 색상이 <strong>한번에</strong> 변경됩니다.<br>
+    AI는 이런 변수 시스템을 자동으로 설계합니다.
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ CSS 변수 코드 보기</button>
+    <div class="code-block" style="display:none">/* AI가 생성한 CSS 변수 — 한 곳만 바꾸면 전체가 바뀜 */
+:root {
+  --primary: #1a3a6b;       /* 이 값을 #006400 으로 바꾸면? → 초록 테마! */
+  --primary-light: #2a5298;
+  --bg: #eef2f7;            /* 배경색 */
+  --white: #ffffff;
+  --border: #d0d9e8;
+}
+
+/* PRD 수정 팁:
+   "빨간색 테마로 바꿔줘" → --primary: #8b0000
+   "초록색 테마로 바꿔줘" → --primary: #006400
+   "다크모드로 바꿔줘"   → --bg: #1a1a2e, --text: #eee */</div>
+  </div>
+
+  <!-- 업로드 -->
+  <div class="upload-section">
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📁</div>
+      <p>엑셀 파일(.xlsx, .csv)을 클릭하거나 드래그하여 업로드하세요</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- 통계 카드 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">전체 민원</div>
+    </div>
+    <div class="stat-card urgent">
+      <div class="stat-value">-</div>
+      <div class="stat-label">🔴 긴급 (Step 3에서 활성화)</div>
+    </div>
+    <div class="stat-card normal">
+      <div class="stat-value">-</div>
+      <div class="stat-label">🟡 보통 (Step 3에서 활성화)</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-value">-</div>
+      <div class="stat-label">🟢 낮음 (Step 3에서 활성화)</div>
+    </div>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-section">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>제목</th>
+            <th>민원내용</th>
+            <th>접수일</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted);">엑셀 파일을 업로드해주세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 다음 단계 -->
+  <div class="prd-box" style="margin-top:16px;">
+    <div class="prd-title">🚀 다음 단계 — Step 3에서 추가할 PRD 문장</div>
+    <div class="prd-after">"<strong>Claude AI API</strong>를 연동해서 각 민원을 자동 분류해줘.<br>
+    유형, 담당부서, 우선순위, 요약, 관련법령을 판단해줘."</div>
+    → 이 한 문장으로 API 호출 코드, JSON 파싱, 진행률 바가 모두 생성됩니다.
+  </div>
+
+</div>
+
+<script>
+function toggleCode(btn) {
+  const block = btn.nextElementSibling;
+  if (block.style.display === 'none') { block.style.display = 'block'; btn.textContent = '▼ 코드 숨기기'; }
+  else { block.style.display = 'none'; btn.textContent = '▶ 코드 보기'; }
+}
+
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#2a5298'; });
+uploadArea.addEventListener('dragleave', () => uploadArea.style.borderColor = '');
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.style.borderColor = '';
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  document.getElementById('fileName').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+    document.getElementById('statTotal').textContent = json.length;
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = json.map((row, i) => {
+      const num = row['번호'] || i + 1;
+      const title = escHtml(row['제목'] || '');
+      const content = escHtml(row['민원내용'] || '');
+      const date = formatDate(row['접수일']);
+      return `<tr><td>${num}</td><td>${title}</td><td title="${content}" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${content}</td><td>${date}</td></tr>`;
+    }).join('');
+  };
+  reader.readAsArrayBuffer(file);
+}
+function formatDate(v) {
+  if (!v) return '';
+  if (typeof v === 'number') return new Date((v - 25569) * 86400000).toISOString().slice(0,10);
+  return String(v);
+}
+function escHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+</script>
+</body>
+</html>

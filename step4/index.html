@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 4 — 차트 시각화</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #1a3a6b; --primary-light: #2a5298; --bg: #eef2f7; --white: #ffffff; --border: #d0d9e8; --text: #2c3e50; --text-muted: #666; }
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+header { background: var(--primary); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+header .logo { font-size: 28px; }
+header h1 { font-size: 20px; font-weight: 600; }
+header .step-badge { background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-size: 12px; margin-left: auto; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+
+.learn-box { background: #fffbea; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; }
+.learn-box .learn-title { font-weight: 700; color: #b45309; margin-bottom: 6px; font-size: 15px; }
+.learn-box code { background: #fef3c7; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 13px; color: #92400e; }
+.prd-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; }
+.prd-box .prd-title { font-weight: 700; color: #1d4ed8; margin-bottom: 6px; font-size: 15px; }
+.prd-before { background: #fee2e2; padding: 8px 14px; border-radius: 6px; margin: 6px 0; font-size: 13px; border-left: 3px solid #ef4444; }
+.prd-after { background: #dcfce7; padding: 8px 14px; border-radius: 6px; margin: 6px 0; font-size: 13px; border-left: 3px solid #22c55e; }
+.prd-label { font-weight: 600; font-size: 12px; color: #666; margin-bottom: 2px; }
+.learn-toggle { background: none; border: none; color: #b45309; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 6px; padding: 0; }
+.code-block { background: #1e293b; color: #e2e8f0; padding: 12px 16px; border-radius: 6px; margin-top: 8px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+
+.api-section { background: var(--white); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.api-section label { font-weight: 600; font-size: 14px; }
+.api-section input[type="password"] { flex: 1; min-width: 260px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+.mode-badge { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.mode-badge.keyword { background: #fef9e7; color: #d68910; border: 1px solid #f9e79f; }
+.mode-badge.api { background: #e8f8f0; color: #1e8449; border: 1px solid #a9dfbf; }
+
+.upload-section { background: var(--white); border-radius: 12px; padding: 20px; margin-bottom: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; cursor: pointer; transition: all 0.2s; }
+.upload-area:hover { border-color: var(--primary-light); background: #f8fafd; }
+.upload-area .icon { font-size: 40px; margin-bottom: 8px; }
+.upload-area p { color: var(--text-muted); font-size: 14px; }
+.upload-area .filename { color: var(--primary); font-weight: 600; margin-top: 8px; }
+#fileInput { display: none; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.stat-card { background: var(--white); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-align: center; }
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.stat-card.urgent .stat-value { color: #c0392b; }
+.stat-card.normal .stat-value { color: #d68910; }
+.stat-card.low .stat-value { color: #1e8449; }
+
+/* 차트 */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { background: var(--white); border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.chart-card h3 { font-size: 15px; margin-bottom: 14px; color: var(--primary); }
+.chart-container { position: relative; width: 100%; max-height: 280px; }
+
+.action-bar { background: var(--white); border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.btn { padding: 8px 18px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-primary:disabled { background: #8ca0bf; cursor: not-allowed; }
+
+.progress-section { margin-bottom: 16px; display: none; }
+.progress-bar-container { background: #e0e7f1; border-radius: 8px; height: 28px; overflow: hidden; position: relative; }
+.progress-bar-fill { background: linear-gradient(90deg, var(--primary), var(--primary-light)); height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s; }
+.progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; }
+
+.table-section { background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--primary); color: white; }
+th { padding: 12px 10px; text-align: left; font-weight: 600; white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid #f0f3f8; vertical-align: top; }
+tr:hover { background: #f8fafd; }
+td:nth-child(3) { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-urgent { background: #fde8e8; color: #c0392b; }
+.badge-normal { background: #fef9e7; color: #d68910; }
+.badge-low    { background: #e8f8f0; color: #1e8449; }
+
+@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .charts-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <h1>공정거래위원회 민원 AI 분류 대시보드</h1>
+  <span class="step-badge">STEP 4 — 시각화</span>
+</header>
+
+<div class="container">
+
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — Step 4의 핵심: 데이터 시각화</div>
+    분류된 데이터를 <strong>차트로 시각화</strong>하면 한눈에 패턴이 보입니다.<br>
+    PRD에 "차트로 보여줘"만 추가하면, AI가 <code>Chart.js</code> 라이브러리를 활용해 자동 생성합니다.<br>
+    <strong>숫자 나열 → 시각적 인사이트.</strong> 보고용 자료로도 바로 활용 가능합니다.
+  </div>
+
+  <div class="prd-box">
+    <div class="prd-title">📝 PRD에 추가한 문장 (Step 3 → Step 4)</div>
+    <div class="prd-label">Step 3까지의 PRD:</div>
+    <div class="prd-before">"엑셀 업로드 + 파란 테마 + AI 분류"</div>
+    <div class="prd-label">Step 4에서 추가한 문장:</div>
+    <div class="prd-after">"분류 결과를 <strong>도넛 차트</strong>(유형별 비율)와 <strong>바 차트</strong>(부서별 건수)로 시각화해줘.<br>도넛 차트 가운데에 총 건수를 표시해줘."</div>
+  </div>
+
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — Chart.js란?</div>
+    <code>Chart.js</code>는 웹에서 차트를 그리는 무료 라이브러리입니다.<br>
+    CDN 한 줄로 불러오고, JavaScript로 데이터만 넣으면 자동으로 차트가 그려집니다.
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ 차트 생성 코드 보기</button>
+    <div class="code-block" style="display:none">// 1. CDN으로 Chart.js 불러오기 (HTML &lt;head&gt;에 추가)
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"&gt;
+
+// 2. 도넛 차트 생성 — 데이터만 넣으면 됨
+new Chart(document.getElementById('typeChart'), {
+  type: 'doughnut',                    // ← 차트 종류 (doughnut, bar, line, pie...)
+  data: {
+    labels: ['가격 담합', '소비자 피해', '허위광고', ...],  // ← 항목 이름
+    datasets: [{
+      data: [45, 38, 32, ...],         // ← 숫자 데이터
+      backgroundColor: ['#1a3a6b', '#2a5298', '#3a7bd5', ...]
+    }]
+  }
+});
+
+// 🔧 PRD 수정 팁:
+// "파이 차트로 바꿔줘"   → type: 'pie'
+// "선 그래프로 바꿔줘"   → type: 'line'
+// "3D 느낌으로 해줘"    → 그림자 효과 추가</div>
+  </div>
+
+  <!-- API 키 -->
+  <div class="api-section">
+    <label>🔑 Claude API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-... 입력 시 AI 모드">
+    <span class="mode-badge keyword" id="modeBadge">📋 키워드 모드</span>
+  </div>
+
+  <!-- 업로드 -->
+  <div class="upload-section">
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📁</div>
+      <p>엑셀 파일(.xlsx, .csv)을 클릭하거나 드래그하여 업로드하세요</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- 통계 카드 -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">전체 민원</div></div>
+    <div class="stat-card urgent"><div class="stat-value" id="statUrgent">0</div><div class="stat-label">🔴 긴급</div></div>
+    <div class="stat-card normal"><div class="stat-value" id="statNormal">0</div><div class="stat-label">🟡 보통</div></div>
+    <div class="stat-card low"><div class="stat-value" id="statLow">0</div><div class="stat-label">🟢 낮음</div></div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>📊 유형별 민원 비율</h3>
+      <div class="chart-container"><canvas id="typeChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📊 담당부서별 건수</h3>
+      <div class="chart-container"><canvas id="deptChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 버튼 -->
+  <div class="action-bar">
+    <button class="btn btn-primary" id="btnClassify" disabled>🤖 AI 분류 시작</button>
+  </div>
+
+  <!-- 진행률 -->
+  <div class="progress-section" id="progressSection">
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressBar"></div>
+      <div class="progress-text" id="progressText">분류 준비 중...</div>
+    </div>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-section">
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>번호</th><th>제목</th><th>민원내용</th><th>접수일</th><th>유형</th><th>담당부서</th><th>우선순위</th><th>요약</th><th>관련법령</th></tr></thead>
+        <tbody id="tableBody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">엑셀 파일을 업로드해주세요.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 다음 단계 -->
+  <div class="prd-box" style="margin-top:16px;">
+    <div class="prd-title">🚀 다음 단계 — Step 5 (완성본)에서 추가할 PRD 문장</div>
+    <div class="prd-after">"유형별, 부서별, 우선순위별 <strong>필터</strong>를 넣어줘."</div>
+    <div class="prd-after">"분류 결과를 <strong>엑셀 다운로드</strong>할 수 있게 해줘."</div>
+    <div class="prd-after">"<strong>인쇄</strong> 버튼도 추가해줘."</div>
+    → 최종 완성본에서는 교육 설명을 제거하고 실무용 깔끔한 UI로 마무리합니다.
+  </div>
+
+</div>
+
+<script>
+function toggleCode(btn) {
+  const b = btn.nextElementSibling;
+  if (b.style.display==='none') { b.style.display='block'; btn.textContent='▼ 코드 숨기기'; }
+  else { b.style.display='none'; btn.textContent='▶ 코드 보기'; }
+}
+
+let rawData=[], classifiedData=[], donutChart=null, barChart=null;
+
+const KW_RULES = [
+  { type:'가격 담합', dept:'카르텔조사국', law:'공정거래법 제40조', keywords:['담합','카르텔','입찰 담합','가격 합의','공동 가격','입찰','가격 인상','공동행위'] },
+  { type:'불공정 거래행위', dept:'시장감시국', law:'공정거래법 제45조', keywords:['불공정','끼워팔기','거래 거절','구속 조건','지위 남용','거래강제','배타조건','부당'] },
+  { type:'허위·과장 광고', dept:'소비자정책국', law:'표시광고법 제3조', keywords:['허위','과장','광고','거짓','오인','표시','기만','사기성'] },
+  { type:'시장지배적 지위 남용', dept:'시장감시국', law:'공정거래법 제5조', keywords:['독점','시장지배','남용','배제','플랫폼','독과점','시장점유'] },
+  { type:'하도급 위반', dept:'기업거래정책국', law:'하도급법 제4조', keywords:['하도급','대금 미지급','기술자료','부당 감액','납품','원사업자','수급사업자','대금'] },
+  { type:'소비자 피해', dept:'소비자정책국', law:'소비자기본법 제19조', keywords:['소비자','환불','청약 철회','약관','구독','피해','반품','교환','해지'] },
+];
+function classifyByKeyword(text) {
+  const c = text.toLowerCase();
+  for (const r of KW_RULES) { if (r.keywords.some(kw=>c.includes(kw))) { const p=['담합','독점','허위','부당'].some(kw=>c.includes(kw))?'긴급':'보통'; return {유형:r.type,담당부서:r.dept,우선순위:p,요약:text.substring(0,20)+'...',관련법령:r.law}; } }
+  return {유형:'기타',담당부서:'민원상담실',우선순위:'낮음',요약:text.substring(0,20)+'...',관련법령:'-'};
+}
+
+const SYSTEM_PROMPT=`당신은 공정거래위원회 민원 분류 전문가입니다.\n민원 내용을 분석하여 아래 JSON 형식으로만 응답하세요. JSON 외의 텍스트는 절대 포함하지 마세요.\n{"유형":"가격 담합|불공정 거래행위|허위·과장 광고|시장지배적 지위 남용|하도급 위반|소비자 피해|기타","담당부서":"카르텔조사국|시장감시국|소비자정책국|기업거래정책국|민원상담실","우선순위":"긴급|보통|낮음","요약":"20자 이내 핵심 요약","관련법령":"공정거래법 제OO조|표시광고법 제OO조|하도급법 제OO조|소비자기본법 제OO조"}`;
+async function callClaude(sp,uc,ak) {
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:1000,system:sp,messages:[{role:'user',content:uc}]})});
+  if(!r.ok) throw new Error(`API 오류: ${r.status}`); const d=await r.json(); return d.content[0].text;
+}
+
+const apiKeyInput=document.getElementById('apiKeyInput'), modeBadge=document.getElementById('modeBadge');
+apiKeyInput.value=localStorage.getItem('ftc_api_key')||'';
+updateModeBadge();
+apiKeyInput.addEventListener('input',()=>{localStorage.setItem('ftc_api_key',apiKeyInput.value.trim());updateModeBadge();});
+function getMode(){return apiKeyInput.value.trim().startsWith('sk-')?'api':'keyword';}
+function updateModeBadge(){if(getMode()==='api'){modeBadge.className='mode-badge api';modeBadge.textContent='🤖 Claude AI 모드';}else{modeBadge.className='mode-badge keyword';modeBadge.textContent='📋 키워드 모드';}}
+
+const uploadArea=document.getElementById('uploadArea'),fileInput=document.getElementById('fileInput');
+uploadArea.addEventListener('click',()=>fileInput.click());
+uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.style.borderColor='#2a5298';});
+uploadArea.addEventListener('dragleave',()=>uploadArea.style.borderColor='');
+uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.style.borderColor='';if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0]);});
+
+function handleFile(file){
+  document.getElementById('fileName').textContent='📄 '+file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],json=XLSX.utils.sheet_to_json(ws);
+    rawData=json.map((row,i)=>({번호:row['번호']||i+1,제목:row['제목']||'',민원내용:row['민원내용']||'',접수일:formatDate(row['접수일']),유형:'',담당부서:'',우선순위:'',요약:'',관련법령:''}));
+    classifiedData=[...rawData];
+    document.getElementById('statTotal').textContent=rawData.length;
+    document.getElementById('btnClassify').disabled=false;
+    renderTable(classifiedData);
+  };
+  reader.readAsArrayBuffer(file);
+}
+function formatDate(v){if(!v)return '';if(typeof v==='number')return new Date((v-25569)*86400000).toISOString().slice(0,10);return String(v);}
+
+document.getElementById('btnClassify').addEventListener('click',startClassification);
+async function startClassification(){
+  const btn=document.getElementById('btnClassify');btn.disabled=true;btn.textContent='⏳ 분류 중...';
+  document.getElementById('progressSection').style.display='block';
+  const mode=getMode(),apiKey=apiKeyInput.value.trim(),total=rawData.length;let apiErr=false;
+  for(let i=0;i<total;i++){
+    const row=classifiedData[i],text=(row.제목||'')+' '+(row.민원내용||'');
+    if(mode==='api'&&!apiErr){try{const result=await callClaude(SYSTEM_PROMPT,`민원 제목: ${row.제목}\n민원 내용: ${row.민원내용}`,apiKey);const parsed=JSON.parse(result.replace(/```json\n?/g,'').replace(/```/g,'').trim());Object.assign(row,parsed);}catch(err){apiErr=true;Object.assign(row,classifyByKeyword(text));}}
+    else{Object.assign(row,classifyByKeyword(text));}
+    const pct=Math.round(((i+1)/total)*100);document.getElementById('progressBar').style.width=pct+'%';document.getElementById('progressText').textContent=`분류 중... ${i+1}/${total}`;
+    if(mode==='api'&&!apiErr)await new Promise(r=>setTimeout(r,300));
+  }
+  btn.textContent='✅ 분류 완료';document.getElementById('progressText').textContent=`분류 완료! ${total}건`;
+  updateStats();updateCharts();renderTable(classifiedData);
+  setTimeout(()=>{btn.textContent='🤖 AI 분류 시작';btn.disabled=false;},2000);
+}
+function updateStats(){
+  document.getElementById('statTotal').textContent=classifiedData.length;
+  document.getElementById('statUrgent').textContent=classifiedData.filter(d=>d.우선순위==='긴급').length;
+  document.getElementById('statNormal').textContent=classifiedData.filter(d=>d.우선순위==='보통').length;
+  document.getElementById('statLow').textContent=classifiedData.filter(d=>d.우선순위==='낮음').length;
+}
+
+const TYPE_COLORS=['#1a3a6b','#2a5298','#3a7bd5','#5b9bd5','#7fb3d8','#a0c4e8','#c4d9f0'];
+const DEPT_COLORS=['#1a3a6b','#2a5298','#3a7bd5','#5b9bd5','#7fb3d8'];
+function updateCharts(){
+  const tc={};classifiedData.forEach(d=>{if(d.유형)tc[d.유형]=(tc[d.유형]||0)+1;});
+  const tl=Object.keys(tc),tv=Object.values(tc);
+  if(donutChart)donutChart.destroy();
+  donutChart=new Chart(document.getElementById('typeChart'),{type:'doughnut',data:{labels:tl,datasets:[{data:tv,backgroundColor:TYPE_COLORS.slice(0,tl.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Malgun Gothic'"},padding:10}}},cutout:'55%'},plugins:[{id:'centerText',afterDraw(chart){const{ctx}=chart;const total=tv.reduce((a,b)=>a+b,0);ctx.save();ctx.font='bold 22px Malgun Gothic';ctx.fillStyle='#1a3a6b';ctx.textAlign='center';ctx.textBaseline='middle';const meta=chart.getDatasetMeta(0);if(meta.data.length>0){ctx.fillText(total+'건',meta.data[0].x,meta.data[0].y);}ctx.restore();}}]});
+
+  const dc={};classifiedData.forEach(d=>{if(d.담당부서)dc[d.담당부서]=(dc[d.담당부서]||0)+1;});
+  const dl=Object.keys(dc),dv=Object.values(dc);
+  if(barChart)barChart.destroy();
+  barChart=new Chart(document.getElementById('deptChart'),{type:'bar',data:{labels:dl,datasets:[{data:dv,backgroundColor:DEPT_COLORS.slice(0,dl.length),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f3f8'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11,family:"'Malgun Gothic'"}}}}}});
+}
+
+function renderTable(data){
+  const tbody=document.getElementById('tableBody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">데이터 없음</td></tr>';return;}
+  tbody.innerHTML=data.map(d=>`<tr><td>${d.번호}</td><td>${escHtml(d.제목)}</td><td title="${escHtml(d.민원내용)}">${escHtml(d.민원내용)}</td><td>${d.접수일}</td><td>${d.유형||'-'}</td><td>${d.담당부서||'-'}</td><td>${priorityBadge(d.우선순위)}</td><td>${escHtml(d.요약||'-')}</td><td>${escHtml(d.관련법령||'-')}</td></tr>`).join('');
+}
+function priorityBadge(p){if(!p)return '-';const c=p==='긴급'?'badge-urgent':p==='보통'?'badge-normal':'badge-low';return `<span class="badge ${c}">${p}</span>`;}
+function escHtml(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';  }
+</script>
+</body>
+</html>

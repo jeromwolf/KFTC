@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>민원 답변 공문 생성기 - 공정거래위원회</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a3a6b;
+      --primary-light: #2a5298;
+      --bg: #eef2f7;
+      --white: #ffffff;
+      --border: #d0d9e8;
+      --text: #2c3e50;
+      --text-muted: #666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: var(--primary);
+      color: var(--white);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    header .logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header .subtitle {
+      font-size: 13px;
+      opacity: 0.75;
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    /* Main layout */
+    .container {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 20px 60px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* API Key section */
+    .api-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .api-row input {
+      flex: 1;
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mode-badge.active {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .mode-badge.inactive {
+      background: #fff3e0;
+      color: #e65100;
+      border: 1px solid #ffcc80;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    label .required {
+      color: #c0392b;
+      margin-left: 2px;
+    }
+
+    label .optional {
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 4px;
+      font-size: 12px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.12);
+    }
+
+    input[type="text"].error,
+    textarea.error,
+    select.error {
+      border-color: #c0392b;
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.6;
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    /* Generate button */
+    .btn-generate {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      letter-spacing: 0.3px;
+      margin-top: 4px;
+    }
+
+    .btn-generate:hover:not(:disabled) {
+      background: var(--primary-light);
+      box-shadow: 0 4px 12px rgba(26, 58, 107, 0.3);
+    }
+
+    .btn-generate:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-generate:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Output section */
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .output-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .output-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      background: var(--white);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 7px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-action.copied {
+      background: #27ae60;
+      border-color: #27ae60;
+      color: var(--white);
+    }
+
+    /* Placeholder state */
+    .output-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 10px;
+    }
+
+    .output-placeholder .icon {
+      font-size: 40px;
+      opacity: 0.4;
+    }
+
+    .output-placeholder p {
+      font-size: 14px;
+    }
+
+    /* Loading spinner */
+    .loading-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      gap: 14px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error message */
+    .error-msg {
+      background: #fdecea;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      color: #c0392b;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* ===== A4 Document Preview ===== */
+    .a4-wrapper {
+      background: #d0d0d0;
+      padding: 24px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #documentPreview {
+      background: #ffffff;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 60px 50px 50px 60px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+      font-size: 14px;
+      color: #000000;
+      line-height: 1.8;
+      position: relative;
+    }
+
+    /* Document agency name */
+    .doc-agency {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: 700;
+      letter-spacing: 4px;
+      margin-bottom: 24pt;
+      padding-bottom: 12pt;
+      border-bottom: 2px solid #000;
+    }
+
+    /* Recipient / Title block */
+    .doc-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16pt;
+      font-size: 10.5pt;
+    }
+
+    .doc-meta-table td {
+      padding: 3pt 0;
+      vertical-align: top;
+    }
+
+    .doc-meta-table td:first-child {
+      width: 56pt;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .doc-meta-table td:nth-child(2) {
+      width: 8pt;
+      text-align: center;
+    }
+
+    /* Divider line after title */
+    .doc-divider {
+      border: none;
+      border-top: 1px solid #000;
+      margin: 12pt 0 18pt;
+    }
+
+    /* Body paragraphs */
+    .doc-body {
+      font-size: 10.5pt;
+      line-height: 1.9;
+    }
+
+    .doc-body .para {
+      margin-bottom: 10pt;
+      text-indent: 0;
+    }
+
+    .doc-body .para-num {
+      font-weight: 700;
+      margin-right: 4pt;
+    }
+
+    .doc-body .para-indent {
+      margin-left: 24pt;
+      margin-bottom: 10pt;
+    }
+
+    .doc-end {
+      margin-top: 16pt;
+      margin-bottom: 24pt;
+    }
+
+    /* Signature block */
+    .doc-signature {
+      text-align: center;
+      margin-top: 32pt;
+      margin-bottom: 24pt;
+    }
+
+    .doc-signature .sig-title {
+      font-size: 13pt;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 20pt;
+    }
+
+    /* Approval stamp table */
+    .doc-approval {
+      display: inline-block;
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+
+    .doc-approval table {
+      border-collapse: collapse;
+    }
+
+    .doc-approval th,
+    .doc-approval td {
+      border: 1px solid #000;
+      width: 44pt;
+      height: 36pt;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 9pt;
+    }
+
+    .doc-approval th {
+      background: #f0f0f0;
+      font-weight: 700;
+      height: 22pt;
+    }
+
+    .doc-approval td {
+      height: 44pt;
+    }
+
+    /* Footer info */
+    .doc-footer {
+      margin-top: 28pt;
+      padding-top: 10pt;
+      border-top: 1px solid #000;
+      font-size: 9pt;
+      line-height: 1.8;
+      color: #222;
+    }
+
+    .doc-footer .footer-row {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 4pt;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .container {
+        padding: 0 12px 40px;
+        margin-top: 20px;
+      }
+      .card {
+        padding: 20px 18px;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-group.full-width {
+        grid-column: auto;
+      }
+      .api-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      header {
+        padding: 14px 18px;
+      }
+      header h1 {
+        font-size: 17px;
+      }
+      .a4-wrapper {
+        padding: 12px;
+        overflow-x: auto;
+      }
+      #documentPreview {
+        max-width: 100%;
+        padding: 30px 20px 20px 24px;
+      }
+    }
+
+    @media print {
+      .a4-wrapper {
+        background: none;
+        padding: 0;
+      }
+      #documentPreview {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <div>
+    <h1>민원 답변 공문 생성기</h1>
+    <div class="subtitle">공정거래위원회 공식 문서 자동 생성 시스템</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- API Key Card -->
+  <div class="card">
+    <div class="card-title">🔑 Claude API 설정</div>
+    <div class="api-row">
+      <input
+        type="text"
+        id="apiKeyInput"
+        placeholder="Anthropic API 키를 입력하면 AI 모드가 활성화됩니다 (sk-ant-...)"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span id="modeBadge" class="mode-badge inactive">📋 기본 모드</span>
+    </div>
+  </div>
+
+  <!-- Input Form Card -->
+  <div class="card">
+    <div class="card-title">📝 민원 정보 입력</div>
+    <div class="form-grid">
+
+      <div class="form-group full-width">
+        <label for="complaintTitle">민원 제목 <span class="required">*</span></label>
+        <input type="text" id="complaintTitle" placeholder="예: OO마트의 가격 담합 의혹 신고" />
+      </div>
+
+      <div class="form-group full-width">
+        <label for="complaintContent">민원 내용 <span class="required">*</span></label>
+        <textarea id="complaintContent" rows="5" placeholder="민원인이 제출한 민원 내용을 입력하세요..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="complaintType">민원 유형 <span class="required">*</span></label>
+        <select id="complaintType">
+          <option value="">-- 유형 선택 --</option>
+          <option value="가격 담합">가격 담합</option>
+          <option value="불공정 거래행위">불공정 거래행위</option>
+          <option value="허위·과장 광고">허위·과장 광고</option>
+          <option value="시장지배적 지위 남용">시장지배적 지위 남용</option>
+          <option value="하도급 위반">하도급 위반</option>
+          <option value="소비자 피해">소비자 피해</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="handlerName">담당자명 <span class="required">*</span></label>
+        <input type="text" id="handlerName" placeholder="예: 홍길동" />
+      </div>
+
+      <div class="form-group full-width">
+        <label for="processResult">처리 결과 <span class="required">*</span></label>
+        <select id="processResult">
+          <option value="">-- 처리 결과 선택 --</option>
+          <option value="조사 착수">조사 착수</option>
+          <option value="검토 후 회신">검토 후 회신</option>
+          <option value="관할 아님">관할 아님</option>
+          <option value="이미 처리됨">이미 처리됨</option>
+        </select>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="additionalInfo">추가 안내 사항 <span class="optional">(선택)</span></label>
+        <textarea id="additionalInfo" rows="3" placeholder="민원인에게 추가로 안내할 사항이 있으면 입력하세요..."></textarea>
+      </div>
+
+    </div>
+
+    <button class="btn-generate" id="generateBtn" onclick="handleGenerate()">
+      공문 생성하기
+    </button>
+  </div>
+
+  <!-- Output Card -->
+  <div class="card" id="outputCard">
+    <div class="output-header">
+      <div class="output-title">📄 생성된 공문</div>
+      <div class="output-actions" id="outputActions" style="display:none;">
+        <button class="btn-action" id="pdfBtn" onclick="handlePdfDownload()">📄 PDF 다운로드</button>
+        <button class="btn-action" id="copyBtn" onclick="handleCopy()">📋 복사</button>
+      </div>
+    </div>
+    <div id="outputArea">
+      <div class="output-placeholder">
+        <div class="icon">📋</div>
+        <p>위 양식을 입력하고 <strong>공문 생성하기</strong> 버튼을 클릭하면<br/>공문이 자동으로 작성됩니다.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── API Key Persistence ───────────────────────────────────────
+  const API_KEY_STORAGE = 'ftc_api_key';
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const modeBadge = document.getElementById('modeBadge');
+
+  (function initApiKey() {
+    const DEFAULT_KEY = '';
+    const saved = localStorage.getItem(API_KEY_STORAGE) || DEFAULT_KEY;
+    apiKeyInput.value = saved;
+    updateModeBadge(true);
+  })();
+
+  apiKeyInput.addEventListener('input', function () {
+    const val = this.value.trim();
+    if (val) {
+      localStorage.setItem(API_KEY_STORAGE, val);
+      updateModeBadge(true);
+    } else {
+      localStorage.removeItem(API_KEY_STORAGE);
+      updateModeBadge(false);
+    }
+  });
+
+  function updateModeBadge(hasKey) {
+    if (hasKey) {
+      modeBadge.className = 'mode-badge active';
+      modeBadge.textContent = '🤖 Claude AI 모드';
+    } else {
+      modeBadge.className = 'mode-badge inactive';
+      modeBadge.textContent = '📋 기본 모드';
+    }
+  }
+
+  // ─── Claude API Call ──────────────────────────────────────────
+  async function callClaude(systemPrompt, userContent, apiKey) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message || 'API 오류가 발생했습니다.');
+    }
+    return data.content[0].text;
+  }
+
+  // ─── Validation ───────────────────────────────────────────────
+  function validateForm() {
+    const fields = [
+      { id: 'complaintTitle', label: '민원 제목' },
+      { id: 'complaintContent', label: '민원 내용' },
+      { id: 'complaintType', label: '민원 유형' },
+      { id: 'handlerName', label: '담당자명' },
+      { id: 'processResult', label: '처리 결과' }
+    ];
+
+    let valid = true;
+    fields.forEach(f => document.getElementById(f.id).classList.remove('error'));
+
+    fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (!el.value.trim()) {
+        el.classList.add('error');
+        valid = false;
+      }
+    });
+
+    return valid;
+  }
+
+  // ─── Date helpers ─────────────────────────────────────────────
+  function getTodayString() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}.`;
+  }
+
+  function getDocNumber() {
+    const d = new Date();
+    const seq = String(Math.floor(Math.random() * 900) + 100);
+    return `${d.getFullYear()}-${seq}`;
+  }
+
+  // ─── Template-based response content ─────────────────────────
+  function getTemplateResponse(result, title, content, type) {
+    const summaryContent = content.length > 80 ? content.substring(0, 80) + '...' : content;
+
+    const templates = {
+      '조사 착수': {
+        summary: `귀하께서는 ${type} 관련하여 "${summaryContent}"에 관한 민원을 제출하셨습니다.`,
+        result: `귀하의 신고 내용에 대하여 면밀히 검토한 결과, 관련 법률 위반 혐의가 인정되어 조사에 착수하였음을 알려드립니다. 조사 결과는 관련 법령에 따라 처리될 예정입니다.`,
+        guide: `조사 진행 상황에 관한 사항은 담당자에게 문의하시거나, 공정거래위원회 홈페이지(www.ftc.go.kr)를 통하여 확인하실 수 있습니다.`
+      },
+      '검토 후 회신': {
+        summary: `귀하께서는 ${type} 관련하여 "${summaryContent}"에 관한 민원을 제출하셨습니다.`,
+        result: `귀하의 민원에 대하여 면밀히 검토한 결과를 아래와 같이 회신합니다. 관련 법령 및 규정을 토대로 귀하의 민원 내용을 검토한 결과, 공정거래 관련 법령 위반 여부에 대하여 종합적으로 살펴보았으며, 귀하의 민원 내용은 관련 규정에 따라 적절히 처리되었습니다.`,
+        guide: `추가적인 문의사항이 있으시면 담당부서로 연락하여 주시기 바랍니다.`
+      },
+      '관할 아님': {
+        summary: `귀하께서는 ${type} 관련하여 "${summaryContent}"에 관한 민원을 제출하셨습니다.`,
+        result: `귀하의 민원 내용을 검토한 결과, 해당 사안은 우리 위원회의 소관 업무에 해당하지 않아 처리가 어렵습니다. 해당 사안의 관할 기관으로 이송 또는 안내해 드리오니 관련 기관에 문의하여 주시기 바랍니다.`,
+        guide: `소비자 분쟁의 경우 한국소비자원(1372), 금융 관련 사항은 금융감독원(1332), 그 밖의 사항은 관할 행정기관에 문의하시기 바랍니다.`
+      },
+      '이미 처리됨': {
+        summary: `귀하께서는 ${type} 관련하여 "${summaryContent}"에 관한 민원을 제출하셨습니다.`,
+        result: `귀하의 민원과 관련하여 이미 처리가 완료되었음을 알려드립니다. 동일한 사안에 대하여 기처리된 결과가 있어, 중복 처리가 어려운 점을 양해하여 주시기 바랍니다.`,
+        guide: `기처리된 결과에 대한 이의가 있으신 경우, 새로운 사실 또는 증거자료를 첨부하여 재신청하실 수 있습니다.`
+      }
+    };
+
+    return templates[result] || templates['검토 후 회신'];
+  }
+
+  // ─── Build HTML Document ──────────────────────────────────────
+  function buildDocumentHTML(data) {
+    const today = getTodayString();
+    const docNo = getDocNumber();
+    const dept = '소비자정책국 소비자안전정보과';
+
+    return `
+      <div class="doc-agency">공정거래위원회</div>
+
+      <table class="doc-meta-table">
+        <tr>
+          <td>수&nbsp;&nbsp;&nbsp;&nbsp;신</td>
+          <td>:</td>
+          <td>민원인</td>
+        </tr>
+        <tr>
+          <td>(경&nbsp;&nbsp;&nbsp;&nbsp;유)</td>
+          <td>:</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>제&nbsp;&nbsp;&nbsp;&nbsp;목</td>
+          <td>:</td>
+          <td>${escapeHtml(data.title)}에 대한 회신</td>
+        </tr>
+      </table>
+
+      <hr class="doc-divider" />
+
+      <div class="doc-body">
+        <div class="para">
+          <span class="para-num">1.</span>귀하의 민원에 대하여 아래와 같이 회신합니다.
+        </div>
+
+        <div class="para">
+          <span class="para-num">2.</span>민원 요지
+        </div>
+        <div class="para-indent">${escapeHtml(data.summary)}</div>
+
+        <div class="para">
+          <span class="para-num">3.</span>검토 결과
+        </div>
+        <div class="para-indent">${escapeHtml(data.result)}</div>
+
+        <div class="para">
+          <span class="para-num">4.</span>향후 안내
+        </div>
+        <div class="para-indent">${escapeHtml(data.guide)}</div>
+      </div>
+
+      <div class="doc-end">붙임: 없음.&nbsp;&nbsp;끝.</div>
+
+      <div class="doc-signature">
+        <div class="sig-title">공정거래위원회위원장</div>
+        <div class="doc-approval">
+          <table>
+            <thead>
+              <tr>
+                <th>기안</th>
+                <th>검토</th>
+                <th>결재</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${escapeHtml(data.handler)}</td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="doc-footer">
+        <div class="footer-row">
+          <span>시행&nbsp;&nbsp;${escapeHtml(dept)}과-${docNo}(${today})</span>
+        </div>
+        <div class="footer-row">
+          <span>우 30107 세종특별자치시 다솜3로 117</span>
+          <span>전화 044-200-4010 &nbsp;/&nbsp; www.ftc.go.kr</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Generate Handler ─────────────────────────────────────────
+  async function handleGenerate() {
+    if (!validateForm()) {
+      alert('필수 항목을 모두 입력해주세요. 빨간색으로 표시된 항목을 확인하세요.');
+      return;
+    }
+
+    const title     = document.getElementById('complaintTitle').value.trim();
+    const content   = document.getElementById('complaintContent').value.trim();
+    const type      = document.getElementById('complaintType').value;
+    const handler   = document.getElementById('handlerName').value.trim();
+    const result    = document.getElementById('processResult').value;
+    const additional = document.getElementById('additionalInfo').value.trim();
+    const apiKey    = (localStorage.getItem(API_KEY_STORAGE) || '').trim();
+
+    const generateBtn  = document.getElementById('generateBtn');
+    const outputArea   = document.getElementById('outputArea');
+    const outputActions = document.getElementById('outputActions');
+
+    // Loading state
+    generateBtn.disabled = true;
+    generateBtn.textContent = '생성 중...';
+    outputActions.style.display = 'none';
+    outputArea.innerHTML = `
+      <div class="loading-wrapper">
+        <div class="spinner"></div>
+        <span>${apiKey ? 'AI가 공문을 작성하고 있습니다...' : '공문을 생성하고 있습니다...'}</span>
+      </div>
+    `;
+
+    try {
+      let docData;
+
+      if (apiKey) {
+        // ── AI Mode ─────────────────────────────────────────────
+        const systemPrompt = `당신은 공정거래위원회의 공식 민원 답변 공문 작성 전문가입니다.
+주어진 민원 정보를 바탕으로 정부 공문 형식에 맞는 내용을 JSON으로 반환하세요.
+
+반드시 다음 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
+{
+  "summary": "민원 요지 (2-3문장, 격식체)",
+  "result": "검토 결과 내용 (3-5문장, 격식체)",
+  "guide": "향후 안내 사항 (1-3문장, 격식체)"
+}
+
+작성 원칙:
+- 공식 행정문서 격식체 사용 (합니다체)
+- 명확하고 간결한 표현
+- 민원 내용과 처리 결과를 정확히 반영
+- 민원인을 '귀하'로 지칭`;
+
+        const userContent = `민원 제목: ${title}
+민원 유형: ${type}
+민원 내용: ${content}
+처리 결과: ${result}
+${additional ? `추가 안내: ${additional}` : ''}`;
+
+        const rawJson = await callClaude(systemPrompt, userContent, apiKey);
+
+        // Parse JSON from AI response
+        const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('AI 응답 파싱 오류가 발생했습니다.');
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        docData = {
+          title,
+          handler,
+          summary: parsed.summary || '',
+          result: parsed.result || '',
+          guide: (additional ? parsed.guide + ' ' + additional : parsed.guide) || ''
+        };
+
+      } else {
+        // ── Basic Mode ───────────────────────────────────────────
+        const tmpl = getTemplateResponse(result, title, content, type);
+        docData = {
+          title,
+          handler,
+          summary: tmpl.summary,
+          result:  tmpl.result,
+          guide:   additional ? tmpl.guide + ' ' + additional : tmpl.guide
+        };
+      }
+
+      // Render document
+      outputArea.innerHTML = `
+        <div class="a4-wrapper">
+          <div id="documentPreview">
+            ${buildDocumentHTML(docData)}
+          </div>
+        </div>
+      `;
+
+      outputActions.style.display = 'flex';
+      document.getElementById('outputCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      outputArea.innerHTML = `
+        <div class="error-msg">
+          <strong>오류가 발생했습니다.</strong><br/>
+          ${escapeHtml(err.message || '알 수 없는 오류입니다. API 키를 확인하거나 잠시 후 다시 시도해주세요.')}
+        </div>
+      `;
+      outputActions.style.display = 'none';
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '공문 생성하기';
+    }
+  }
+
+  // ─── PDF Download ─────────────────────────────────────────────
+  function handlePdfDownload() {
+    const preview = document.getElementById('documentPreview');
+    if (!preview) return;
+
+    const pdfBtn = document.getElementById('pdfBtn');
+    pdfBtn.disabled = true;
+    pdfBtn.textContent = '생성 중...';
+
+    const titleEl = document.getElementById('complaintTitle');
+    const safeTitle = titleEl ? titleEl.value.trim().replace(/[^\w가-힣\s]/g, '') : '민원답변공문';
+    const filename = `공정거래위원회_민원답변_${safeTitle || '공문'}.pdf`;
+
+    const opt = {
+      margin:      [20, 15, 15, 15],
+      filename:    filename,
+      image:       { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // 화면 padding 제거 → html2pdf margin만으로 여백 처리
+    preview.style.padding = '0';
+    preview.style.maxWidth = 'none';
+    preview.style.boxShadow = 'none';
+
+    html2pdf().set(opt).from(preview).save().then(() => {
+      preview.style.padding = '';
+      preview.style.maxWidth = '';
+      preview.style.boxShadow = '';
+      pdfBtn.disabled = false;
+      pdfBtn.textContent = '📄 PDF 다운로드';
+    }).catch(() => {
+      preview.style.padding = '';
+      preview.style.maxWidth = '';
+      preview.style.boxShadow = '';
+      pdfBtn.disabled = false;
+      pdfBtn.textContent = '📄 PDF 다운로드';
+      alert('PDF 생성 중 오류가 발생했습니다.');
+    });
+  }
+
+  // ─── Copy Handler ─────────────────────────────────────────────
+  async function handleCopy() {
+    const preview = document.getElementById('documentPreview');
+    if (!preview) return;
+
+    const copyBtn = document.getElementById('copyBtn');
+    const text = preview.innerText || preview.textContent;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✅ 복사됨';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.textContent = '📋 복사';
+      }, 2000);
+    } catch {
+      const range = document.createRange();
+      range.selectNode(preview);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✅ 복사됨';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.textContent = '📋 복사';
+      }, 2000);
+    }
+  }
+
+  // ─── Utils ────────────────────────────────────────────────────
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Clear error highlights on interaction
+  ['complaintTitle', 'complaintContent', 'complaintType', 'handlerName', 'processResult'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input',  function () { this.classList.remove('error'); });
+      el.addEventListener('change', function () { this.classList.remove('error'); });
+    }
+  });
+</script>
+
+</body>
+</html>

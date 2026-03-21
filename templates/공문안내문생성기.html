@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>공문·안내문 생성기 - 공정거래위원회</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a3a6b;
+      --primary-light: #2a5298;
+      --bg: #eef2f7;
+      --white: #ffffff;
+      --border: #d0d9e8;
+      --text: #2c3e50;
+      --text-muted: #666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--primary);
+      color: var(--white);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+
+    header .logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header .subtitle {
+      font-size: 13px;
+      opacity: 0.75;
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 18px;
+    }
+
+    /* API Key section */
+    .api-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .api-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      background: #f8fafc;
+    }
+
+    .api-row input:focus {
+      border-color: var(--primary-light);
+      background: var(--white);
+    }
+
+    .mode-badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.3s;
+    }
+
+    .mode-badge.active {
+      background: #e8f4e8;
+      color: #2d7a2d;
+      border: 1.5px solid #b4d9b4;
+    }
+
+    .mode-badge.inactive {
+      background: #fef3e2;
+      color: #b07a00;
+      border: 1.5px solid #f0d090;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    label .required {
+      color: #c0392b;
+      margin-left: 3px;
+    }
+
+    label .optional {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #f8fafc;
+      width: 100%;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary-light);
+      background: var(--white);
+      box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.08);
+    }
+
+    input.error,
+    select.error,
+    textarea.error {
+      border-color: #e74c3c;
+      background: #fff8f8;
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.6;
+    }
+
+    .btn-generate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 4px;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-generate:hover:not(:disabled) {
+      background: var(--primary-light);
+    }
+
+    .btn-generate:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn-generate:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Output section */
+    #output-section {
+      display: none;
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .output-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 20px;
+      background: var(--white);
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      border-radius: 8px;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-action.copied {
+      background: #2d7a2d;
+      border-color: #2d7a2d;
+      color: var(--white);
+    }
+
+    .btn-pdf {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-pdf:hover {
+      background: var(--primary-light);
+    }
+
+    /* Error message */
+    .error-msg {
+      display: none;
+      background: #fff1f0;
+      border: 1px solid #ffccc7;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #c0392b;
+      margin-top: 12px;
+    }
+
+    .error-msg.show {
+      display: block;
+    }
+
+    /* ── A4 Document Preview ───────────────────────────────────────────── */
+    #documentPreview {
+      background: #fff;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 60px 50px 40px 50px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+      border: 1px solid #d0d9e8;
+      font-family: '바탕', 'Batang', 'NanumMyeongjo', 'Georgia', serif;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #111;
+      position: relative;
+    }
+
+    /* 기관명 */
+    .doc-agency {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      letter-spacing: 3px;
+      margin-bottom: 24px;
+      font-family: '바탕', 'Batang', serif;
+    }
+
+    /* 수신/경유/제목 블록 */
+    .doc-header-block {
+      margin-bottom: 20px;
+    }
+
+    .doc-header-row {
+      display: flex;
+      gap: 0;
+      line-height: 2;
+    }
+
+    .doc-header-label {
+      font-weight: bold;
+      min-width: 60px;
+      flex-shrink: 0;
+    }
+
+    .doc-header-value {
+      flex: 1;
+    }
+
+    /* 본문 */
+    .doc-body {
+      margin-bottom: 20px;
+    }
+
+    .doc-section {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 4px;
+      align-items: flex-start;
+    }
+
+    .doc-section-num {
+      font-weight: bold;
+      min-width: 28px;
+      flex-shrink: 0;
+    }
+
+    .doc-section-content {
+      flex: 1;
+    }
+
+    /* 붙임 + 끝 */
+    .doc-attachment {
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    /* 서명 블록 */
+    .doc-sign-block {
+      margin-top: 36px;
+      text-align: center;
+    }
+
+    .doc-sign-title {
+      font-size: 13pt;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+
+    /* 결재란 */
+    .doc-approval-table {
+      border-collapse: collapse;
+      margin: 0 auto 20px auto;
+    }
+
+    .doc-approval-table td {
+      border: 1px solid #333;
+      width: 60px;
+      height: 50px;
+      text-align: center;
+      vertical-align: top;
+      padding: 4px 6px;
+      font-size: 9.5pt;
+    }
+
+    .doc-approval-label {
+      font-weight: bold;
+      background: #f5f5f5;
+      height: 24px !important;
+    }
+
+    /* 시행 정보 */
+    .doc-footer-block {
+      border-top: 2px solid #333;
+      padding-top: 10px;
+      margin-top: 24px;
+      font-size: 9.5pt;
+      line-height: 1.8;
+    }
+
+    .doc-footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 24px;
+    }
+
+    @media print {
+      #documentPreview {
+        box-shadow: none;
+        border: none;
+        padding: 60px 50px 40px 50px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-group.full-width {
+        grid-column: 1;
+      }
+      .card {
+        padding: 20px 18px;
+      }
+      header {
+        padding: 14px 18px;
+      }
+      #documentPreview {
+        padding: 30px 20px 20px 24px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <div>
+    <h1>공문·안내문 생성기</h1>
+    <div class="subtitle">공정거래위원회 · Fair Trade Commission</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- API Key Card -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">🔑</span> Claude API 설정
+    </div>
+    <div class="api-row">
+      <input
+        type="password"
+        id="api-key-input"
+        placeholder="Anthropic API 키를 입력하세요 (sk-ant-...) — 없으면 기본 모드로 생성"
+        autocomplete="off"
+      >
+      <span class="mode-badge inactive" id="mode-badge">📋 기본 모드</span>
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">📝</span> 문서 정보 입력
+    </div>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="doc-type">문서 유형 <span class="required">*</span></label>
+        <select id="doc-type">
+          <option value="">-- 선택하세요 --</option>
+          <option value="업무협조요청">업무 협조 요청</option>
+          <option value="행사안내">행사 안내</option>
+          <option value="기관공지">기관 공지</option>
+          <option value="감사인사">감사 인사</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="recipient">수신 기관/부서 <span class="required">*</span></label>
+        <input type="text" id="recipient" placeholder="예: 기획재정부 경제정책과">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="doc-title">제목 <span class="required">*</span></label>
+        <input type="text" id="doc-title" placeholder="예: 2025년 시장 경쟁 촉진 업무 협조 요청">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="core-content">핵심 내용 <span class="required">*</span></label>
+        <textarea id="core-content" placeholder="예: 독과점 규제 관련 자료 제출 요청, 시장 점유율 현황 파악 필요"></textarea>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="request-details">요청 사항 또는 안내 사항 <span class="required">*</span></label>
+        <textarea id="request-details" placeholder="예: 관련 자료를 제출 기한 내에 담당자 이메일로 송부해 주시기 바랍니다."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="deadline">제출/회신 기한 <span class="optional">(선택)</span></label>
+        <input type="date" id="deadline">
+      </div>
+
+      <div class="form-group">
+        <label for="handler">담당자 <span class="required">*</span></label>
+        <input type="text" id="handler" placeholder="예: 시장감시국 경쟁정책과 홍길동">
+      </div>
+
+    </div>
+
+    <div class="error-msg" id="form-error"></div>
+
+    <button class="btn-generate" id="generate-btn" onclick="generateDocument()" style="margin-top: 24px;">
+      <span id="btn-icon">✨</span>
+      <span id="btn-text">공문 생성하기</span>
+    </button>
+  </div>
+
+  <!-- Output Card -->
+  <div class="card" id="output-section">
+    <div class="output-header">
+      <div class="card-title" style="margin-bottom:0;">
+        <span class="icon">📄</span> 생성된 공문
+      </div>
+      <div class="output-actions">
+        <button class="btn-action btn-pdf" id="pdf-btn" onclick="downloadPDF()">
+          📄 PDF 다운로드
+        </button>
+        <button class="btn-action" id="copy-btn" onclick="copyDocument()">
+          📋 복사
+        </button>
+      </div>
+    </div>
+
+    <!-- A4 Document Preview -->
+    <div id="documentPreview">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── API Key persistence ───────────────────────────────────────────────────
+  const KEY_STORAGE = 'ftc_api_key';
+  const apiKeyInput = document.getElementById('api-key-input');
+  const modeBadge = document.getElementById('mode-badge');
+
+  function updateModeBadge(key) {
+    if (key && key.trim().startsWith('sk-')) {
+      modeBadge.textContent = '🤖 Claude AI 모드';
+      modeBadge.className = 'mode-badge active';
+    } else {
+      modeBadge.textContent = '📋 기본 모드';
+      modeBadge.className = 'mode-badge inactive';
+    }
+  }
+
+  const DEFAULT_KEY = '';
+  const savedKey = localStorage.getItem(KEY_STORAGE) || DEFAULT_KEY;
+  apiKeyInput.value = savedKey;
+  updateModeBadge(savedKey);
+
+  apiKeyInput.addEventListener('input', () => {
+    const val = apiKeyInput.value.trim();
+    localStorage.setItem(KEY_STORAGE, val);
+    updateModeBadge(val);
+  });
+
+  // ─── Claude API call ───────────────────────────────────────────────────────
+  async function callClaude(systemPrompt, userContent, apiKey) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API 오류 (${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text;
+  }
+
+  // ─── System prompts by doc type ───────────────────────────────────────────
+  function buildSystemPrompt(docType) {
+    const basePrompt = `당신은 대한민국 공정거래위원회의 숙련된 행정 전문가입니다.
+정부 표준 공문 양식에 맞추어 각 본문 섹션을 작성합니다.
+반드시 아래 JSON 형식만 응답하세요. 다른 설명, 마크다운, 코드블록은 일절 포함하지 마세요.
+
+{
+  "본문도입": "문서 시작 도입 문구 (1~2문장, 격식체)",
+  "핵심내용": "핵심 내용을 공문 격식에 맞게 다듬은 문장",
+  "요청안내": "요청 또는 안내 사항을 공문 격식에 맞게 다듬은 문장",
+  "마무리": "마무리 협조 요청 문구 (1문장, 격식체)"
+}`;
+
+    const typeGuides = {
+      '업무협조요청': '협력 기관에 업무 협조를 구하는 공손하고 격식 있는 어조로 작성하세요.',
+      '행사안내': '행사 참석을 권유하는 안내문 어조로 작성하세요.',
+      '기관공지': '기관 내·외부에 사항을 공지하는 공식적 어조로 작성하세요.',
+      '감사인사': '협조에 대한 감사의 뜻을 진지하고 격식 있게 표현하세요.',
+      '기타': '일반적인 정부 공문 격식에 맞는 어조로 작성하세요.'
+    };
+
+    const guide = typeGuides[docType] || typeGuides['기타'];
+    return basePrompt + '\n\n문서 유형 지침: ' + guide;
+  }
+
+  // ─── Parse JSON from Claude response (robust) ─────────────────────────────
+  function parseClaudeJSON(text) {
+    // Try direct parse first
+    try { return JSON.parse(text.trim()); } catch {}
+    // Extract JSON object from text
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { return JSON.parse(match[0]); } catch {}
+    }
+    return null;
+  }
+
+  // ─── Date helpers ─────────────────────────────────────────────────────────
+  function formatKoreanDate(isoDate) {
+    const d = new Date(isoDate + 'T00:00:00');
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+  }
+
+  function getTodayISO() {
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth()+1).padStart(2,'0');
+    const d = String(t.getDate()).padStart(2,'0');
+    return `${y}.${m}.${d}.`;
+  }
+
+  function getTodayKorean() {
+    const t = new Date();
+    return `${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일`;
+  }
+
+  // ─── Form validation ───────────────────────────────────────────────────────
+  const REQUIRED_FIELDS = [
+    { id: 'doc-type',        label: '문서 유형' },
+    { id: 'recipient',       label: '수신 기관/부서' },
+    { id: 'doc-title',       label: '제목' },
+    { id: 'core-content',    label: '핵심 내용' },
+    { id: 'request-details', label: '요청/안내 사항' },
+    { id: 'handler',         label: '담당자' }
+  ];
+
+  function validateForm() {
+    let missing = [];
+    REQUIRED_FIELDS.forEach(f => {
+      const el = document.getElementById(f.id);
+      const val = el.value.trim();
+      if (!val) {
+        el.classList.add('error');
+        missing.push(f.label);
+      } else {
+        el.classList.remove('error');
+      }
+    });
+    return missing;
+  }
+
+  REQUIRED_FIELDS.forEach(f => {
+    document.getElementById(f.id).addEventListener('input', function() {
+      this.classList.remove('error');
+      document.getElementById('form-error').classList.remove('show');
+    });
+    document.getElementById(f.id).addEventListener('change', function() {
+      this.classList.remove('error');
+      document.getElementById('form-error').classList.remove('show');
+    });
+  });
+
+  // ─── Escape HTML ──────────────────────────────────────────────────────────
+  function esc(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ─── Render official document HTML ────────────────────────────────────────
+  function renderDocument(fields, content) {
+    const { recipient, docTitle, handler, deadlineStr, today, todayISO } = fields;
+    const { 본문도입, 핵심내용, 요청안내, 마무리 } = content;
+
+    // Section numbering
+    let sectionNum = 1;
+    let bodyHTML = '';
+
+    // 1. 도입 (관련 근거 / 배경)
+    bodyHTML += `
+      <div class="doc-section">
+        <span class="doc-section-num">${sectionNum++}.</span>
+        <span class="doc-section-content">${esc(본문도입)}</span>
+      </div>`;
+
+    // 2. 핵심내용
+    bodyHTML += `
+      <div class="doc-section">
+        <span class="doc-section-num">${sectionNum++}.</span>
+        <span class="doc-section-content">${esc(핵심내용)}</span>
+      </div>`;
+
+    // 3. 요청/안내사항
+    bodyHTML += `
+      <div class="doc-section">
+        <span class="doc-section-num">${sectionNum++}.</span>
+        <span class="doc-section-content">${esc(요청안내)}</span>
+      </div>`;
+
+    // 4. 제출 기한 (선택)
+    if (deadlineStr) {
+      bodyHTML += `
+        <div class="doc-section">
+          <span class="doc-section-num">${sectionNum++}.</span>
+          <span class="doc-section-content">제출(회신) 기한: ${esc(deadlineStr)}</span>
+        </div>`;
+    }
+
+    // 마무리
+    if (마무리) {
+      bodyHTML += `
+        <div class="doc-section" style="margin-top:6px;">
+          <span class="doc-section-num"></span>
+          <span class="doc-section-content">${esc(마무리)}</span>
+        </div>`;
+    }
+
+    return `
+      <div class="doc-agency">공정거래위원회</div>
+
+      <div class="doc-header-block">
+        <div class="doc-header-row">
+          <span class="doc-header-label">수신</span>
+          <span class="doc-header-value">${esc(recipient)}의 장</span>
+        </div>
+        <div class="doc-header-row">
+          <span class="doc-header-label">(경유)</span>
+          <span class="doc-header-value"></span>
+        </div>
+        <div class="doc-header-row">
+          <span class="doc-header-label">제목</span>
+          <span class="doc-header-value">${esc(docTitle)}</span>
+        </div>
+      </div>
+
+      <div class="doc-body">
+        ${bodyHTML}
+      </div>
+
+      <div class="doc-attachment">붙임&nbsp; 없음.&nbsp;&nbsp; 끝.</div>
+
+      <div class="doc-sign-block">
+        <div class="doc-sign-title">공정거래위원회위원장</div>
+        <table class="doc-approval-table">
+          <tr>
+            <td class="doc-approval-label">기안</td>
+            <td class="doc-approval-label">검토</td>
+            <td class="doc-approval-label">결재</td>
+          </tr>
+          <tr>
+            <td style="height:50px;"></td>
+            <td style="height:50px;"></td>
+            <td style="height:50px;"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="doc-footer-block">
+        <div>시행&nbsp; ○○과-○○○호(${todayISO})&nbsp;&nbsp;&nbsp;접수</div>
+        <div>우 30107 세종특별자치시 다솜3로 117</div>
+        <div class="doc-footer-row">
+          <span>전화 044-200-4010</span>
+          <span>전송 044-200-4219</span>
+          <span>/&nbsp; www.ftc.go.kr</span>
+        </div>
+        <div style="font-size:8.5pt; color:#555; margin-top:4px;">담당자: ${esc(handler)}</div>
+      </div>
+    `;
+  }
+
+  // ─── Generate document ─────────────────────────────────────────────────────
+  async function generateDocument() {
+    const apiKey = apiKeyInput.value.trim();
+
+    const missing = validateForm();
+    if (missing.length > 0) {
+      const errEl = document.getElementById('form-error');
+      errEl.textContent = `다음 필수 항목을 입력해주세요: ${missing.join(', ')}`;
+      errEl.classList.add('show');
+      return;
+    }
+
+    const docType      = document.getElementById('doc-type').value;
+    const recipient    = document.getElementById('recipient').value.trim();
+    const docTitle     = document.getElementById('doc-title').value.trim();
+    const coreContent  = document.getElementById('core-content').value.trim();
+    const reqDetails   = document.getElementById('request-details').value.trim();
+    const deadline     = document.getElementById('deadline').value;
+    const handler      = document.getElementById('handler').value.trim();
+
+    const deadlineStr = deadline ? formatKoreanDate(deadline) : '';
+    const today       = getTodayKorean();
+    const todayISO    = getTodayISO();
+
+    const fields = { recipient, docTitle, handler, deadlineStr, today, todayISO };
+
+    // Set loading state
+    const btn = document.getElementById('generate-btn');
+    const btnIcon = document.getElementById('btn-icon');
+    const btnText = document.getElementById('btn-text');
+    btn.disabled = true;
+    btnIcon.outerHTML = `<span class="spinner" id="btn-icon"></span>`;
+    btnText.textContent = '생성 중...';
+
+    try {
+      let content;
+
+      if (apiKey && apiKey.startsWith('sk-')) {
+        // AI mode — call Claude
+        const systemPrompt = buildSystemPrompt(docType);
+        const userContent = `다음 정보를 바탕으로 공문 본문 4개 섹션을 JSON으로 작성해주세요.
+
+[문서유형] ${docType}
+[수신기관] ${recipient}
+[제목] ${docTitle}
+[핵심내용] ${coreContent}
+[요청/안내사항] ${reqDetails}
+${deadlineStr ? `[제출/회신기한] ${deadlineStr}` : ''}
+[담당자] ${handler}`;
+
+        const raw = await callClaude(systemPrompt, userContent, apiKey);
+        const parsed = parseClaudeJSON(raw);
+
+        if (!parsed) {
+          throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.');
+        }
+
+        content = {
+          본문도입: parsed['본문도입'] || '',
+          핵심내용: parsed['핵심내용'] || coreContent,
+          요청안내: parsed['요청안내'] || reqDetails,
+          마무리:   parsed['마무리'] || '귀 기관의 적극적인 협조를 부탁드립니다.'
+        };
+
+      } else {
+        // Basic mode — use raw input directly
+        content = {
+          본문도입: `${today} 공정거래위원회의 ${docType === '기타' ? '공문' : docType}입니다.`,
+          핵심내용: coreContent,
+          요청안내: reqDetails,
+          마무리:   '귀 기관의 적극적인 협조를 부탁드립니다.'
+        };
+      }
+
+      // Render and show
+      const preview = document.getElementById('documentPreview');
+      preview.innerHTML = renderDocument(fields, content);
+
+      const outputSection = document.getElementById('output-section');
+      outputSection.style.display = 'block';
+      outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      const errEl = document.getElementById('form-error');
+      errEl.textContent = `오류가 발생했습니다: ${err.message}`;
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('btn-icon').outerHTML = `<span id="btn-icon">✨</span>`;
+      document.getElementById('btn-text').textContent = '공문 생성하기';
+    }
+  }
+
+  // ─── PDF Download ─────────────────────────────────────────────────────────
+  async function downloadPDF() {
+    const preview = document.getElementById('documentPreview');
+    const docTitle = document.getElementById('doc-title').value.trim() || '공문';
+
+    const pdfBtn = document.getElementById('pdf-btn');
+    pdfBtn.textContent = '생성 중...';
+    pdfBtn.disabled = true;
+
+    const opt = {
+      margin:    [20, 15, 15, 15],
+      filename:  `공문_${docTitle}.pdf`,
+      image:     { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+      jsPDF:     { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // 화면 padding 제거 → html2pdf margin만으로 여백 처리
+    preview.style.padding = '0';
+    preview.style.maxWidth = 'none';
+    preview.style.boxShadow = 'none';
+
+    try {
+      await html2pdf().set(opt).from(preview).save();
+    } catch (e) {
+      alert('PDF 생성 중 오류가 발생했습니다: ' + e.message);
+    } finally {
+      preview.style.padding = '';
+      preview.style.maxWidth = '';
+      preview.style.boxShadow = '';
+      pdfBtn.textContent = '📄 PDF 다운로드';
+      pdfBtn.disabled = false;
+    }
+  }
+
+  // ─── Copy to clipboard ─────────────────────────────────────────────────────
+  async function copyDocument() {
+    const preview = document.getElementById('documentPreview');
+    const text = preview.innerText || preview.textContent;
+    const copyBtn = document.getElementById('copy-btn');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.innerHTML = '<span>✅</span> 복사됨!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.innerHTML = '<span>📋</span> 복사';
+        copyBtn.classList.remove('copied');
+      }, 2200);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.innerHTML = '<span>✅</span> 복사됨!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.innerHTML = '<span>📋</span> 복사';
+        copyBtn.classList.remove('copied');
+      }, 2200);
+    }
+  }
+
+  // Allow Enter on single-line inputs to trigger generation
+  ['recipient', 'doc-title', 'handler'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') generateDocument();
+    });
+  });
+</script>
+</body>
+</html>

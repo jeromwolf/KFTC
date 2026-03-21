@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 3 — AI 분류 연동</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #1a3a6b;
+  --primary-light: #2a5298;
+  --bg: #eef2f7;
+  --white: #ffffff;
+  --border: #d0d9e8;
+  --text: #2c3e50;
+  --text-muted: #666;
+}
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+header {
+  background: var(--primary); color: white; padding: 16px 28px;
+  display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+header .logo { font-size: 28px; }
+header h1 { font-size: 20px; font-weight: 600; }
+header .step-badge { background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-size: 12px; margin-left: auto; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+
+.learn-box { background: #fffbea; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; }
+.learn-box .learn-title { font-weight: 700; color: #b45309; margin-bottom: 6px; font-size: 15px; }
+.learn-box code { background: #fef3c7; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 13px; color: #92400e; }
+.prd-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; }
+.prd-box .prd-title { font-weight: 700; color: #1d4ed8; margin-bottom: 6px; font-size: 15px; }
+.prd-before { background: #fee2e2; padding: 8px 14px; border-radius: 6px; margin: 6px 0; font-size: 13px; border-left: 3px solid #ef4444; }
+.prd-after { background: #dcfce7; padding: 8px 14px; border-radius: 6px; margin: 6px 0; font-size: 13px; border-left: 3px solid #22c55e; }
+.prd-label { font-weight: 600; font-size: 12px; color: #666; margin-bottom: 2px; }
+.learn-toggle { background: none; border: none; color: #b45309; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 6px; padding: 0; }
+.code-block { background: #1e293b; color: #e2e8f0; padding: 12px 16px; border-radius: 6px; margin-top: 8px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+
+/* 핵심 개념 카드 */
+.concept-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;
+}
+.concept-card {
+  background: var(--white); border-radius: 10px; padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-align: center;
+}
+.concept-card .concept-icon { font-size: 32px; margin-bottom: 6px; }
+.concept-card .concept-name { font-weight: 700; font-size: 14px; color: var(--primary); }
+.concept-card .concept-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* API 키 */
+.api-section {
+  background: var(--white); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.api-section label { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.api-section input[type="password"] { flex: 1; min-width: 260px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+.mode-badge { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.mode-badge.keyword { background: #fef9e7; color: #d68910; border: 1px solid #f9e79f; }
+.mode-badge.api { background: #e8f8f0; color: #1e8449; border: 1px solid #a9dfbf; }
+
+.upload-section { background: var(--white); border-radius: 12px; padding: 20px; margin-bottom: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; cursor: pointer; transition: all 0.2s; }
+.upload-area:hover { border-color: var(--primary-light); background: #f8fafd; }
+.upload-area .icon { font-size: 40px; margin-bottom: 8px; }
+.upload-area p { color: var(--text-muted); font-size: 14px; }
+.upload-area .filename { color: var(--primary); font-weight: 600; margin-top: 8px; }
+#fileInput { display: none; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.stat-card { background: var(--white); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-align: center; }
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.stat-card.urgent .stat-value { color: #c0392b; }
+.stat-card.normal .stat-value { color: #d68910; }
+.stat-card.low .stat-value { color: #1e8449; }
+
+.action-bar { background: var(--white); border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.btn { padding: 8px 18px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-primary:disabled { background: #8ca0bf; cursor: not-allowed; }
+
+.progress-section { margin-bottom: 16px; display: none; }
+.progress-bar-container { background: #e0e7f1; border-radius: 8px; height: 28px; overflow: hidden; position: relative; }
+.progress-bar-fill { background: linear-gradient(90deg, var(--primary), var(--primary-light)); height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s; }
+.progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; }
+
+/* AI 로그 */
+.ai-log { background: #1e293b; color: #94a3b8; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-family: 'Consolas', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; display: none; line-height: 1.6; }
+.ai-log .log-success { color: #4ade80; }
+.ai-log .log-info { color: #60a5fa; }
+.ai-log .log-warn { color: #fbbf24; }
+
+.table-section { background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--primary); color: white; }
+th { padding: 12px 10px; text-align: left; font-weight: 600; white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid #f0f3f8; vertical-align: top; }
+tr:hover { background: #f8fafd; }
+td:nth-child(3) { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-urgent { background: #fde8e8; color: #c0392b; }
+.badge-normal { background: #fef9e7; color: #d68910; }
+.badge-low    { background: #e8f8f0; color: #1e8449; }
+
+@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .concept-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <h1>공정거래위원회 민원 AI 분류 시스템</h1>
+  <span class="step-badge">STEP 3 — AI 연동</span>
+</header>
+
+<div class="container">
+
+  <!-- 이 단계의 핵심 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — Step 3의 핵심: AI API 연동</div>
+    이제 <strong>진짜 AI</strong>를 연결합니다. PRD에 "Claude AI로 분류해줘"를 추가하면,<br>
+    AI가 <strong>API 호출 코드, JSON 파싱, 진행률 표시</strong>를 자동으로 만들어줍니다.<br>
+    200건의 민원을 사람이 분류하면 몇 시간? → AI는 <strong>몇 분</strong>이면 끝납니다.
+  </div>
+
+  <!-- PRD 변경 포인트 -->
+  <div class="prd-box">
+    <div class="prd-title">📝 PRD에 추가한 문장 (Step 2 → Step 3)</div>
+    <div class="prd-label">Step 2까지의 PRD:</div>
+    <div class="prd-before">"엑셀 업로드 + 파란 테마 + 통계 카드"</div>
+    <div class="prd-label">Step 3에서 추가한 문장:</div>
+    <div class="prd-after">"<strong>Claude AI API</strong>를 연동해서 각 민원을 자동 분류해줘.<br>
+    유형(담합/불공정거래/허위광고 등), 담당부서, 우선순위, 요약, 관련법령을 판단해줘.<br>
+    API 키가 없으면 키워드 규칙으로 대체 분류해줘."</div>
+  </div>
+
+  <!-- 핵심 개념 3가지 -->
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="concept-icon">🔑</div>
+      <div class="concept-name">API Key</div>
+      <div class="concept-desc">AI 서비스 사용을 위한<br>인증 비밀번호</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-icon">📋</div>
+      <div class="concept-name">시스템 프롬프트</div>
+      <div class="concept-desc">AI에게 역할과 응답 형식을<br>지정하는 지시문</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-icon">📦</div>
+      <div class="concept-name">JSON 응답</div>
+      <div class="concept-desc">프로그램이 파싱할 수 있는<br>구조화된 데이터 형식</div>
+    </div>
+  </div>
+
+  <!-- API 키 입력 -->
+  <div class="api-section">
+    <label>🔑 Claude API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-... 입력 시 AI 모드, 없으면 키워드 모드">
+    <span class="mode-badge keyword" id="modeBadge">📋 키워드 모드</span>
+  </div>
+
+  <!-- API 호출 원리 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — AI API 호출은 이렇게 동작합니다</div>
+    ① 민원 1건의 제목+내용을 Claude에게 전송<br>
+    ② 시스템 프롬프트가 <strong>"JSON으로만 답해"</strong>라고 지시<br>
+    ③ Claude가 <code>{"유형":"가격 담합", "담당부서":"카르텔조사국", ...}</code> 형태로 응답<br>
+    ④ 프로그램이 JSON을 파싱하여 테이블에 표시
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ 실제 API 호출 코드 보기</button>
+    <div class="code-block" style="display:none">// 브라우저에서 직접 Claude API를 호출하는 코드
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,                                // ← 발급받은 API 키
+    'anthropic-version': '2023-06-01',                  // ← API 버전
+    'anthropic-dangerous-direct-browser-access': 'true' // ← 브라우저 직접 호출 허용
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-5-20250929',   // ← 사용할 AI 모델
+    max_tokens: 1000,                       // ← 최대 응답 길이
+    system: '당신은 민원 분류 전문가...',     // ← 시스템 프롬프트 (AI의 역할)
+    messages: [{ role: 'user', content: '민원 내용: ...' }]
+  })
+});
+
+// 응답 예시:
+// {"유형":"가격 담합","담당부서":"카르텔조사국","우선순위":"긴급",
+//  "요약":"입찰 담합 의혹 제기","관련법령":"공정거래법 제40조"}</div>
+  </div>
+
+  <!-- 시스템 프롬프트 설명 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — 프롬프트 엔지니어링이란?</div>
+    AI에게 <strong>"JSON으로만 응답해"</strong>라고 지시하면 → 프로그램이 파싱 가능한 데이터를 받습니다.<br>
+    이것이 <strong>프롬프트 엔지니어링</strong>의 핵심입니다. 프롬프트를 바꾸면 결과가 바뀝니다.
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ 시스템 프롬프트 전문 보기</button>
+    <div class="code-block" style="display:none">// 이 프롬프트가 AI의 응답 형식을 결정합니다
+"당신은 공정거래위원회 민원 분류 전문가입니다.
+민원 내용을 분석하여 아래 JSON 형식으로만 응답하세요:
+{
+  \"유형\": \"가격 담합|불공정 거래행위|허위·과장 광고|...\",
+  \"담당부서\": \"카르텔조사국|시장감시국|소비자정책국|...\",
+  \"우선순위\": \"긴급|보통|낮음\",
+  \"요약\": \"20자 이내 핵심 요약\",
+  \"관련법령\": \"공정거래법 제OO조|...\"
+}"
+
+// 🔧 PRD 수정으로 바꿀 수 있는 것들:
+// "유형에 '개인정보 침해'를 추가해줘"     → 카테고리 추가됨
+// "우선순위를 4단계로 바꿔줘"            → 긴급/높음/보통/낮음
+// "감정 분석도 추가해줘"               → 새 분류 항목 생성
+// "요약을 50자로 늘려줘"               → 요약이 더 상세해짐</div>
+  </div>
+
+  <!-- 업로드 -->
+  <div class="upload-section">
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📁</div>
+      <p>엑셀 파일(.xlsx, .csv)을 클릭하거나 드래그하여 업로드하세요</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- 통계 카드 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">전체 민원</div>
+    </div>
+    <div class="stat-card urgent">
+      <div class="stat-value" id="statUrgent">0</div>
+      <div class="stat-label">🔴 긴급</div>
+    </div>
+    <div class="stat-card normal">
+      <div class="stat-value" id="statNormal">0</div>
+      <div class="stat-label">🟡 보통</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-value" id="statLow">0</div>
+      <div class="stat-label">🟢 낮음</div>
+    </div>
+  </div>
+
+  <!-- 버튼 -->
+  <div class="action-bar">
+    <button class="btn btn-primary" id="btnClassify" disabled>🤖 AI 분류 시작</button>
+  </div>
+
+  <!-- 진행률 -->
+  <div class="progress-section" id="progressSection">
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressBar"></div>
+      <div class="progress-text" id="progressText">분류 준비 중...</div>
+    </div>
+  </div>
+
+  <!-- AI 로그 -->
+  <div class="ai-log" id="aiLog"></div>
+
+  <!-- 테이블 -->
+  <div class="table-section">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>번호</th><th>제목</th><th>민원내용</th><th>접수일</th>
+            <th>유형</th><th>담당부서</th><th>우선순위</th><th>요약</th><th>관련법령</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">엑셀 파일을 업로드해주세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 다음 단계 -->
+  <div class="prd-box" style="margin-top:16px;">
+    <div class="prd-title">🚀 다음 단계 — Step 4에서 추가할 PRD 문장</div>
+    <div class="prd-after">"분류 결과를 <strong>도넛 차트</strong>(유형별 비율)와 <strong>바 차트</strong>(부서별 건수)로 시각화해줘."</div>
+    → Chart.js 라이브러리를 활용한 데이터 시각화가 자동 생성됩니다.
+  </div>
+
+</div>
+
+<script>
+function toggleCode(btn) {
+  const block = btn.nextElementSibling;
+  if (block.style.display === 'none') { block.style.display = 'block'; btn.textContent = '▼ 코드 숨기기'; }
+  else { block.style.display = 'none'; btn.textContent = '▶ 코드 보기'; }
+}
+
+let rawData = [], classifiedData = [];
+
+const KW_RULES = [
+  { type:'가격 담합', dept:'카르텔조사국', law:'공정거래법 제40조', keywords:['담합','카르텔','입찰 담합','가격 합의','공동 가격','입찰','가격 인상','공동행위'] },
+  { type:'불공정 거래행위', dept:'시장감시국', law:'공정거래법 제45조', keywords:['불공정','끼워팔기','거래 거절','구속 조건','지위 남용','거래강제','배타조건','부당'] },
+  { type:'허위·과장 광고', dept:'소비자정책국', law:'표시광고법 제3조', keywords:['허위','과장','광고','거짓','오인','표시','기만','사기성'] },
+  { type:'시장지배적 지위 남용', dept:'시장감시국', law:'공정거래법 제5조', keywords:['독점','시장지배','남용','배제','플랫폼','독과점','시장점유'] },
+  { type:'하도급 위반', dept:'기업거래정책국', law:'하도급법 제4조', keywords:['하도급','대금 미지급','기술자료','부당 감액','납품','원사업자','수급사업자','대금'] },
+  { type:'소비자 피해', dept:'소비자정책국', law:'소비자기본법 제19조', keywords:['소비자','환불','청약 철회','약관','구독','피해','반품','교환','해지'] },
+];
+
+function classifyByKeyword(text) {
+  const combined = text.toLowerCase();
+  for (const rule of KW_RULES) {
+    if (rule.keywords.some(kw => combined.includes(kw))) {
+      const priority = ['담합','독점','허위','부당'].some(kw => combined.includes(kw)) ? '긴급' : '보통';
+      return { 유형: rule.type, 담당부서: rule.dept, 우선순위: priority, 요약: text.substring(0,20)+'...', 관련법령: rule.law };
+    }
+  }
+  return { 유형:'기타', 담당부서:'민원상담실', 우선순위:'낮음', 요약: text.substring(0,20)+'...', 관련법령:'-' };
+}
+
+const SYSTEM_PROMPT = `당신은 공정거래위원회 민원 분류 전문가입니다.
+민원 내용을 분석하여 아래 JSON 형식으로만 응답하세요. JSON 외의 텍스트는 절대 포함하지 마세요.
+{
+  "유형": "가격 담합|불공정 거래행위|허위·과장 광고|시장지배적 지위 남용|하도급 위반|소비자 피해|기타",
+  "담당부서": "카르텔조사국|시장감시국|소비자정책국|기업거래정책국|민원상담실",
+  "우선순위": "긴급|보통|낮음",
+  "요약": "20자 이내 핵심 요약",
+  "관련법령": "공정거래법 제OO조|표시광고법 제OO조|하도급법 제OO조|소비자기본법 제OO조"
+}`;
+
+async function callClaude(systemPrompt, userContent, apiKey) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-5-20250929', max_tokens: 1000, system: systemPrompt, messages: [{ role: 'user', content: userContent }] })
+  });
+  if (!response.ok) throw new Error(`API 오류: ${response.status}`);
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+// API 키
+const apiKeyInput = document.getElementById('apiKeyInput');
+const modeBadge = document.getElementById('modeBadge');
+apiKeyInput.value = localStorage.getItem('ftc_api_key') || '';
+updateModeBadge();
+apiKeyInput.addEventListener('input', () => { localStorage.setItem('ftc_api_key', apiKeyInput.value.trim()); updateModeBadge(); });
+function getMode() { return apiKeyInput.value.trim().startsWith('sk-') ? 'api' : 'keyword'; }
+function updateModeBadge() {
+  if (getMode() === 'api') { modeBadge.className = 'mode-badge api'; modeBadge.textContent = '🤖 Claude AI 모드'; }
+  else { modeBadge.className = 'mode-badge keyword'; modeBadge.textContent = '📋 키워드 모드'; }
+}
+
+// 업로드
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#2a5298'; });
+uploadArea.addEventListener('dragleave', () => uploadArea.style.borderColor = '');
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.style.borderColor = ''; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  document.getElementById('fileName').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+    rawData = json.map((row, i) => ({ 번호: row['번호']||i+1, 제목: row['제목']||'', 민원내용: row['민원내용']||'', 접수일: formatDate(row['접수일']), 유형:'', 담당부서:'', 우선순위:'', 요약:'', 관련법령:'' }));
+    classifiedData = [...rawData];
+    document.getElementById('statTotal').textContent = rawData.length;
+    document.getElementById('btnClassify').disabled = false;
+    renderTable(classifiedData);
+  };
+  reader.readAsArrayBuffer(file);
+}
+function formatDate(v) { if (!v) return ''; if (typeof v==='number') return new Date((v-25569)*86400000).toISOString().slice(0,10); return String(v); }
+
+// AI 로그
+const aiLog = document.getElementById('aiLog');
+function addLog(msg, type='info') {
+  aiLog.style.display = 'block';
+  const div = document.createElement('div');
+  div.className = 'log-' + type;
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  aiLog.appendChild(div);
+  aiLog.scrollTop = aiLog.scrollHeight;
+}
+
+// 분류
+document.getElementById('btnClassify').addEventListener('click', startClassification);
+async function startClassification() {
+  const btn = document.getElementById('btnClassify');
+  btn.disabled = true; btn.textContent = '⏳ 분류 중...';
+  document.getElementById('progressSection').style.display = 'block';
+  aiLog.innerHTML = ''; aiLog.style.display = 'block';
+
+  const mode = getMode(), apiKey = apiKeyInput.value.trim(), total = rawData.length;
+  let apiErr = false;
+  addLog(`분류 시작: ${total}건, 모드: ${mode==='api'?'Claude AI':'키워드'}`, 'info');
+
+  for (let i = 0; i < total; i++) {
+    const row = classifiedData[i], text = (row.제목||'')+' '+(row.민원내용||'');
+    if (mode === 'api' && !apiErr) {
+      try {
+        addLog(`[${i+1}/${total}] API 호출: "${row.제목.substring(0,25)}..."`, 'info');
+        const result = await callClaude(SYSTEM_PROMPT, `민원 제목: ${row.제목}\n민원 내용: ${row.민원내용}`, apiKey);
+        const parsed = JSON.parse(result.replace(/```json\n?/g,'').replace(/```/g,'').trim());
+        Object.assign(row, parsed);
+        addLog(`→ ${parsed.유형} / ${parsed.우선순위}`, 'success');
+      } catch (err) {
+        addLog(`API 오류! 키워드 모드 전환: ${err.message}`, 'warn');
+        apiErr = true;
+        Object.assign(row, classifyByKeyword(text));
+      }
+    } else {
+      Object.assign(row, classifyByKeyword(text));
+      if (i===0 && mode!=='api') addLog('키워드 규칙으로 분류합니다', 'warn');
+    }
+    const pct = Math.round(((i+1)/total)*100);
+    document.getElementById('progressBar').style.width = pct+'%';
+    document.getElementById('progressText').textContent = `분류 중... ${i+1}/${total}`;
+    if (mode==='api' && !apiErr) await new Promise(r=>setTimeout(r,300));
+  }
+
+  addLog(`✅ 분류 완료! ${total}건`, 'success');
+  btn.textContent = '✅ 분류 완료';
+  document.getElementById('progressText').textContent = `분류 완료! ${total}건`;
+  updateStats(); renderTable(classifiedData);
+  setTimeout(() => { btn.textContent = '🤖 AI 분류 시작'; btn.disabled = false; }, 2000);
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = classifiedData.length;
+  document.getElementById('statUrgent').textContent = classifiedData.filter(d=>d.우선순위==='긴급').length;
+  document.getElementById('statNormal').textContent = classifiedData.filter(d=>d.우선순위==='보통').length;
+  document.getElementById('statLow').textContent = classifiedData.filter(d=>d.우선순위==='낮음').length;
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  if (!data.length) { tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">데이터 없음</td></tr>'; return; }
+  tbody.innerHTML = data.map(d=>`<tr><td>${d.번호}</td><td>${escHtml(d.제목)}</td><td title="${escHtml(d.민원내용)}">${escHtml(d.민원내용)}</td><td>${d.접수일}</td><td>${d.유형||'-'}</td><td>${d.담당부서||'-'}</td><td>${priorityBadge(d.우선순위)}</td><td>${escHtml(d.요약||'-')}</td><td>${escHtml(d.관련법령||'-')}</td></tr>`).join('');
+}
+function priorityBadge(p) { if(!p) return '-'; const c=p==='긴급'?'badge-urgent':p==='보통'?'badge-normal':'badge-low'; return `<span class="badge ${c}">${p}</span>`; }
+function escHtml(s) { return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''; }
+</script>
+</body>
+</html>

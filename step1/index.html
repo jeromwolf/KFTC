@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 1 — 엑셀 업로드 + 기본 테이블</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  min-height: 100vh;
+}
+header {
+  background: #1a3a6b;
+  color: white;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+header .logo { font-size: 28px; }
+header h1 { font-size: 20px; }
+header .step-badge {
+  background: rgba(255,255,255,0.2);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+/* 학습 포인트 박스 */
+.learn-box {
+  background: #fffbea;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.learn-box .learn-title {
+  font-weight: 700;
+  color: #b45309;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+.learn-box code {
+  background: #fef3c7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  color: #92400e;
+}
+.learn-box .code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-top: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+}
+.learn-toggle {
+  background: none;
+  border: none;
+  color: #b45309;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 6px;
+  padding: 0;
+}
+
+/* 업로드 */
+.upload-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.upload-area:hover { border-color: #1a3a6b; background: #f8fafd; }
+.upload-area .icon { font-size: 48px; margin-bottom: 10px; }
+.upload-area p { color: #888; }
+.upload-area .filename { color: #1a3a6b; font-weight: 600; margin-top: 8px; }
+#fileInput { display: none; }
+
+/* 카운트 */
+.count-bar {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: none;
+}
+.count-bar span { color: #1a3a6b; font-size: 28px; }
+
+/* 테이블 */
+.table-section {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead { background: #e8ecf1; }
+th { padding: 12px 14px; text-align: left; font-weight: 600; color: #555; }
+td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+tr:hover { background: #fafafa; }
+td.content-cell { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty-msg { text-align: center; padding: 60px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🏛️</span>
+  <h1>민원 데이터 뷰어</h1>
+  <span class="step-badge">STEP 1 — 기본 업로드</span>
+</header>
+
+<div class="container">
+
+  <!-- 학습 포인트 1: 이 단계의 목표 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — Step 1의 목표</div>
+    이 단계는 <strong>"바이브코딩의 첫 결과물"</strong>입니다.<br>
+    PRD(제품 요구사항 문서)에 <strong>"엑셀을 업로드하면 테이블로 보여줘"</strong>라고만 적으면,<br>
+    AI가 이 정도의 동작하는 앱을 만들어줍니다. 아직 AI 분류 없이 <strong>데이터만 표시</strong>합니다.
+  </div>
+
+  <!-- 파일 업로드 -->
+  <div class="upload-section">
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📁</div>
+      <p>엑셀 파일(.xlsx, .csv)을 클릭하거나 드래그하여 업로드하세요</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- 학습 포인트 2: SheetJS 라이브러리 -->
+  <div class="learn-box">
+    <div class="learn-title">💡 학습 포인트 — 엑셀 파일은 어떻게 읽을까?</div>
+    브라우저는 기본적으로 엑셀 파일을 읽을 수 없습니다.<br>
+    <code>SheetJS (xlsx.js)</code> 라이브러리를 CDN으로 불러와서 엑셀을 JavaScript 배열로 변환합니다.
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ 코드 보기</button>
+    <div class="code-block" style="display:none">// 1. 사용자가 파일을 선택하면
+fileInput.addEventListener('change', handleFile);
+
+// 2. FileReader로 파일을 읽고
+const reader = new FileReader();
+reader.readAsArrayBuffer(file);
+
+// 3. SheetJS가 엑셀 → JSON으로 변환
+const workbook = XLSX.read(data, { type: 'array' });
+const sheet = workbook.Sheets[workbook.SheetNames[0]];
+const json = XLSX.utils.sheet_to_json(sheet);
+// → [{번호:1, 제목:"...", 민원내용:"..."}, ...]</div>
+  </div>
+
+  <!-- 건수 표시 -->
+  <div class="count-bar" id="countBar">
+    📋 총 민원: <span id="totalCount">0</span>건
+  </div>
+
+  <!-- 학습 포인트 3: DOM 조작 -->
+  <div class="learn-box" id="learnDom" style="display:none">
+    <div class="learn-title">💡 학습 포인트 — 데이터를 화면에 표시하기</div>
+    엑셀에서 읽은 JSON 배열을 <code>forEach</code>로 반복하면서<br>
+    HTML <code>&lt;tr&gt;&lt;td&gt;</code> 태그로 변환하여 테이블에 삽입합니다.
+    <button class="learn-toggle" onclick="toggleCode(this)">▶ 코드 보기</button>
+    <div class="code-block" style="display:none">// JSON 배열 → HTML 테이블 행으로 변환
+data.forEach(row => {
+  const tr = `&lt;tr&gt;
+    &lt;td&gt;${row.번호}&lt;/td&gt;
+    &lt;td&gt;${row.제목}&lt;/td&gt;
+    &lt;td&gt;${row.민원내용}&lt;/td&gt;
+    &lt;td&gt;${row.접수일}&lt;/td&gt;
+  &lt;/tr&gt;`;
+  tbody.innerHTML += tr;
+});</div>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-section">
+    <table>
+      <thead>
+        <tr>
+          <th>번호</th>
+          <th>제목</th>
+          <th>민원내용</th>
+          <th>접수일</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="4" class="empty-msg">엑셀 파일을 업로드하면 여기에 데이터가 표시됩니다.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 학습 포인트 4: 다음 단계 안내 -->
+  <div class="learn-box" style="margin-top: 20px;">
+    <div class="learn-title">🚀 다음 단계 예고 — Step 2에서 추가할 것</div>
+    Step 1이 동작하면, PRD에 이렇게 추가합니다:<br>
+    <strong>"디자인을 공공기관 파란색으로 바꿔줘"</strong> → 테마 변경<br>
+    <strong>"Claude AI로 민원을 자동 분류해줘"</strong> → AI API 연동<br>
+    <strong>"통계 카드도 보여줘"</strong> → 대시보드 UI 추가<br>
+    <br>
+    이렇게 <strong>점진적으로 요구사항을 추가</strong>하는 것이 바이브코딩의 핵심입니다.
+  </div>
+
+</div>
+
+<script>
+// 코드 토글
+function toggleCode(btn) {
+  const block = btn.nextElementSibling;
+  if (block.style.display === 'none') {
+    block.style.display = 'block';
+    btn.textContent = '▼ 코드 숨기기';
+  } else {
+    block.style.display = 'none';
+    btn.textContent = '▶ 코드 보기';
+  }
+}
+
+// 파일 업로드
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#1a3a6b'; });
+uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = '#ccc'; });
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.style.borderColor = '#ccc';
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  document.getElementById('fileName').textContent = '📄 ' + file.name;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+
+    // 건수 표시
+    document.getElementById('countBar').style.display = 'block';
+    document.getElementById('totalCount').textContent = json.length;
+
+    // DOM 학습 포인트 표시
+    document.getElementById('learnDom').style.display = 'block';
+
+    // 테이블 렌더링
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = json.map((row, i) => {
+      const num = row['번호'] || i + 1;
+      const title = escHtml(row['제목'] || '');
+      const content = escHtml(row['민원내용'] || '');
+      const date = formatDate(row['접수일']);
+      return `<tr>
+        <td>${num}</td>
+        <td>${title}</td>
+        <td class="content-cell" title="${content}">${content}</td>
+        <td>${date}</td>
+      </tr>`;
+    }).join('');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function formatDate(v) {
+  if (!v) return '';
+  if (typeof v === 'number') {
+    const d = new Date((v - 25569) * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+  return String(v);
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
