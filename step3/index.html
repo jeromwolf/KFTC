@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Step 3 — AI 분류 연동</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="../config.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -348,7 +349,8 @@ async function callClaude(systemPrompt, userContent, apiKey) {
 // API 키
 const apiKeyInput = document.getElementById('apiKeyInput');
 const modeBadge = document.getElementById('modeBadge');
-apiKeyInput.value = localStorage.getItem('ftc_api_key') || '';
+const DEFAULT_KEY = (typeof KFTC_CONFIG !== 'undefined' && KFTC_CONFIG.API_KEY) ? KFTC_CONFIG.API_KEY : '';
+apiKeyInput.value = localStorage.getItem('ftc_api_key') || DEFAULT_KEY;
 updateModeBadge();
 apiKeyInput.addEventListener('input', () => { localStorage.setItem('ftc_api_key', apiKeyInput.value.trim()); updateModeBadge(); });
 function getMode() { return apiKeyInput.value.trim().startsWith('sk-') ? 'api' : 'keyword'; }

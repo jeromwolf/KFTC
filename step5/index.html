@@ -6,6 +6,7 @@
 <title>공정거래위원회 민원 AI 분류 대시보드 — 완성본</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="../config.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --primary: #1a3a6b; --primary-light: #2a5298; --bg: #eef2f7; --white: #ffffff; --border: #d0d9e8; --text: #2c3e50; --text-muted: #666; }
@@ -188,7 +189,8 @@ async function callClaude(sp,uc,ak){
 
 // API 키
 const apiKeyInput=document.getElementById('apiKeyInput'),modeBadge=document.getElementById('modeBadge');
-apiKeyInput.value=localStorage.getItem('ftc_api_key')||'';updateModeBadge();
+const DEFAULT_KEY = (typeof KFTC_CONFIG !== 'undefined' && KFTC_CONFIG.API_KEY) ? KFTC_CONFIG.API_KEY : '';
+apiKeyInput.value=localStorage.getItem('ftc_api_key')||DEFAULT_KEY;updateModeBadge();
 apiKeyInput.addEventListener('input',()=>{localStorage.setItem('ftc_api_key',apiKeyInput.value.trim());updateModeBadge();});
 function getMode(){return apiKeyInput.value.trim().startsWith('sk-')?'api':'keyword';}
 function updateModeBadge(){if(getMode()==='api'){modeBadge.className='mode-badge api';modeBadge.textContent='🤖 Claude AI 모드';}else{modeBadge.className='mode-badge keyword';modeBadge.textContent='📋 키워드 모드';}}

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>민원 답변 공문 생성기 - 공정거래위원회</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="../config.js"></script>
   <style>
     :root {
       --primary: #1a3a6b;
@@ -647,7 +648,7 @@
   const modeBadge = document.getElementById('modeBadge');
 
   (function initApiKey() {
-    const DEFAULT_KEY = '';
+    const DEFAULT_KEY = (typeof KFTC_CONFIG !== 'undefined' && KFTC_CONFIG.API_KEY) ? KFTC_CONFIG.API_KEY : '';
     const saved = localStorage.getItem(API_KEY_STORAGE) || DEFAULT_KEY;
     apiKeyInput.value = saved;
     updateModeBadge(true);

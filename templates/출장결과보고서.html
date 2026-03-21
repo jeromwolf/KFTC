@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>출장 결과 보고서 생성기 - 공정거래위원회</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="../config.js"></script>
   <style>
     :root {
       --primary: #1a3a6b;
@@ -745,7 +746,7 @@
   const copyBtn          = document.getElementById('copyBtn');
 
   // ─── Load saved API key ───
-  const DEFAULT_KEY = '';
+  const DEFAULT_KEY = (typeof KFTC_CONFIG !== 'undefined' && KFTC_CONFIG.API_KEY) ? KFTC_CONFIG.API_KEY : '';
   const savedKey = localStorage.getItem(API_KEY_STORAGE) || DEFAULT_KEY;
   apiKeyInput.value = savedKey;
   updateBadge(savedKey);
